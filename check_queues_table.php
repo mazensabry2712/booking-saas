@@ -16,16 +16,16 @@ if (!$tenant) {
 
 $tenant->run(function () {
     echo "Checking queues table structure...\n\n";
-    
+
     $columns = Schema::getColumnListing('queues');
-    
+
     echo "Columns in queues table:\n";
     foreach ($columns as $column) {
         echo "  - $column\n";
     }
-    
+
     $requiredColumns = ['id', 'appointment_id', 'queue_number', 'status', 'priority', 'estimated_wait_time', 'served_at', 'created_at', 'updated_at'];
-    
+
     echo "\nChecking required columns:\n";
     foreach ($requiredColumns as $col) {
         $exists = in_array($col, $columns);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Appointment;
 use App\Models\User;
 use App\Models\Role;
@@ -49,7 +50,7 @@ class AdminController extends Controller
             ->orderBy('priority', 'desc')
             ->orderBy('queue_number', 'asc')
             ->get();
-            
+
         return view('admin.queue', compact('queues'));
     }
 
@@ -58,7 +59,48 @@ class AdminController extends Controller
      */
     public function reports()
     {
-        return view('admin.reports');
+        // General Statistics
+        $stats = [
+            'total_appointments' => Appointment::count(),
+            'confirmed_appointments' => Appointment::where('status', 'confirmed')->count(),
+            'pending_appointments' => Appointment::where('status', 'pending')->count(),
+            'total_customers' => User::whereHas('role', function($q) {
+                $q->where('name', 'Customer');
+            })->count(),
+        ];
+
+        // Appointments by status
+        $appointmentsByStatus = Appointment::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get();
+
+        // Queue statistics
+        $queueStats = [
+            'waiting' => \App\Models\Queue::where('status', 'waiting')->count(),
+            'serving' => \App\Models\Queue::where('status', 'serving')->count(),
+            'completed' => \App\Models\Queue::where('status', 'completed')->count(),
+            'priority' => \App\Models\Queue::where('priority', true)->whereIn('status', ['waiting', 'serving'])->count(),
+        ];
+
+        // Staff performance
+        $staffPerformance = User::whereHas('role', function($q) {
+                $q->whereIn('name', ['Admin Tenant', 'Staff']);
+            })
+            ->withCount(['staffAppointments' => function($q) {
+                $q->where('status', 'confirmed');
+            }])
+            ->having('staff_appointments_count', '>', 0)
+            ->orderBy('staff_appointments_count', 'desc')
+            ->get();
+
+        // Service types
+        $serviceTypes = Appointment::whereNotNull('service_type')
+            ->select('service_type', DB::raw('count(*) as count'))
+            ->groupBy('service_type')
+            ->orderBy('count', 'desc')
+            ->get();
+
+        return view('admin.reports', compact('stats', 'appointmentsByStatus', 'queueStats', 'staffPerformance', 'serviceTypes'));
     }
 
     /**
@@ -260,7 +302,7 @@ class AdminController extends Controller
 
             // Get or create customer
             $customerRole = Role::where('name', 'Customer')->first();
-            
+
             $customer = User::firstOrCreate(
                 ['email' => $validated['customer_email'] ?? $validated['customer_phone'] . '@temp.local'],
                 [
@@ -290,7 +332,7 @@ class AdminController extends Controller
             $lastQueue = \App\Models\Queue::whereDate('created_at', now()->toDateString())
                 ->orderBy('queue_number', 'desc')
                 ->first();
-            
+
             $queueNumber = $lastQueue ? $lastQueue->queue_number + 1 : 1;
 
             // Add to queue
@@ -367,10 +409,10 @@ class AdminController extends Controller
     {
         try {
             $queue = \App\Models\Queue::findOrFail($id);
-            
+
             // Update any currently serving to waiting
             \App\Models\Queue::where('status', 'serving')->update(['status' => 'waiting']);
-            
+
             $queue->update(['status' => 'serving']);
 
             return response()->json([
@@ -393,7 +435,7 @@ class AdminController extends Controller
     {
         try {
             $queue = \App\Models\Queue::findOrFail($id);
-            
+
             $queue->update([
                 'status' => 'completed',
                 'served_at' => now()
@@ -424,7 +466,7 @@ class AdminController extends Controller
     {
         try {
             $queue = \App\Models\Queue::findOrFail($id);
-            
+
             $validated = $request->validate([
                 'priority' => 'required|boolean',
             ]);

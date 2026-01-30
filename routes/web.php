@@ -60,7 +60,7 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff']
         Route::get('/appointments/{id}', [AdminController::class, 'showAppointment'])->name('api.appointments.show');
         Route::put('/appointments/{id}', [AdminController::class, 'updateAppointment'])->name('api.appointments.update');
         Route::delete('/appointments/{id}', [AdminController::class, 'destroyAppointment'])->name('api.appointments.destroy');
-        
+
         // Queue Management
         Route::post('/queue/add', [AdminController::class, 'addToQueue'])->name('api.queue.add');
         Route::post('/queue/call-next', [AdminController::class, 'callNext'])->name('api.queue.callNext');

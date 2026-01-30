@@ -8,7 +8,6 @@ class Queue extends Model
 {
 
     protected $fillable = [
-        'tenant_id',
         'appointment_id',
         'queue_number',
         'status',
@@ -19,14 +18,10 @@ class Queue extends Model
 
     protected $casts = [
         'served_at' => 'datetime',
+        'priority' => 'boolean',
     ];
 
     // Relationships
-    public function tenant()
-    {
-        return $this->belongsTo(Tenant::class);
-    }
-
     public function appointment()
     {
         return $this->belongsTo(Appointment::class);
