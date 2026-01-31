@@ -71,6 +71,17 @@ Route::prefix('api/super-admin')->middleware(['auth:sanctum', 'super.admin'])->g
 | Routes for tenant users accessed via subdomain
 */
 
+// Public API Routes (No auth required) - For booking form
+Route::prefix('api')->middleware(['tenant', 'tenant.locale'])->group(function () {
+    // Get staff list for booking form
+    Route::get('staff', function () {
+        return \App\Models\User::role('Staff')->select('id', 'name')->get();
+    });
+    
+    // Create appointment (public)
+    Route::post('appointments', [\App\Http\Controllers\Tenant\AppointmentController::class, 'store']);
+});
+
 Route::prefix('api')->middleware(['tenant', 'tenant.locale', 'auth:sanctum'])->group(function () {
 
     // Appointments
@@ -79,9 +90,8 @@ Route::prefix('api')->middleware(['tenant', 'tenant.locale', 'auth:sanctum'])->g
         Route::apiResource('appointments', \App\Http\Controllers\Tenant\AppointmentController::class)->except(['store']);
     });
 
-    // Customers can only create their own appointments
+    // Customers can manage their own appointments
     Route::middleware(['role:Customer'])->group(function () {
-        Route::post('appointments', [\App\Http\Controllers\Tenant\AppointmentController::class, 'store']);
         Route::get('my-appointments', [\App\Http\Controllers\Tenant\AppointmentController::class, 'myAppointments']);
     });
 

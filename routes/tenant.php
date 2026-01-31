@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
+use App\Http\Controllers\Tenant\AppointmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,7 +24,34 @@ Route::middleware([
     InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
 ])->group(function () {
+    // Booking Form - Public Page
     Route::get('/', function () {
-        return 'This is your multi-tenant application. The id of the current tenant is ' . tenant('id');
+        return redirect()->route('booking.form');
+    });
+    
+    Route::get('/book', function () {
+        return view('customer.booking');
+    })->name('booking.form');
+    
+    // Queue Status Page
+    Route::get('/queue/status', function () {
+        return view('customer.queue-status');
+    })->name('queue.status');
+    
+    // Public API for Booking Form
+    Route::prefix('api')->group(function () {
+        // Get staff list
+        Route::get('staff', function () {
+            $staffRole = \App\Models\Role::where('name', 'Staff')->first();
+            if (!$staffRole) {
+                return response()->json([]);
+            }
+            return \App\Models\User::where('role_id', $staffRole->id)
+                ->select('id', 'name')
+                ->get();
+        });
+        
+        // Create appointment (public)
+        Route::post('appointments', [AppointmentController::class, 'store']);
     });
 });

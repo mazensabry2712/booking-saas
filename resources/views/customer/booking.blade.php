@@ -152,18 +152,14 @@
     </div>
 
     <script>
-        // Load available staff
-        async function loadStaff() {
-            try {
-                const response = await fetch('/api/staff', {
-                    headers: {
-                        'Accept': 'application/json',
-                    }
-                });
-                const data = await response.json();
+        // Staff data from server
+        const staffData = @json(\App\Models\Role::where('name', 'Staff')->first()?->users()->select('id', 'name')->get() ?? []);
 
+        // Load available staff
+        function loadStaff() {
+            try {
                 const staffSelect = document.getElementById('staff_id');
-                data.forEach(staff => {
+                staffData.forEach(staff => {
                     const option = document.createElement('option');
                     option.value = staff.id;
                     option.textContent = staff.name;
