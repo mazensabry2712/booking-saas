@@ -77,7 +77,7 @@ Route::prefix('api')->middleware(['tenant', 'tenant.locale'])->group(function ()
     Route::get('staff', function () {
         return \App\Models\User::role('Staff')->select('id', 'name')->get();
     });
-    
+
     // Create appointment (public)
     Route::post('appointments', [\App\Http\Controllers\Tenant\AppointmentController::class, 'store']);
 });
