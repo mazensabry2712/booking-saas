@@ -22,3 +22,31 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Development files - لا ترفع على السيرفر
+/out
+*.php~ 
+cookies.txt
+test_*.php
+check_*.php
+fix_*.php
+seed_*.php
+update_*.php
+add_*.php
+
+# Storage folders - تأكد من وجود المجلدات فقط
+/storage/app/*
+!/storage/app/.gitignore
+!/storage/app/public/
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+
+# Bootstrap cache
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
