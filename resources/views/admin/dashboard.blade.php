@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - {{ tenant()->name }}</title>
+    <title>{{ __('Dashboard') }} - {{ tenant()->name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
@@ -14,13 +14,24 @@
                 <div class="flex items-center">
                     <h1 class="text-xl font-bold text-gray-900">{{ tenant()->name }}</h1>
                 </div>
-                <div class="flex items-center space-x-4 space-x-reverse">
+                <div class="flex items-center gap-4">
+                    <!-- Language Switcher -->
+                    <div class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                        <button onclick="changeLanguage('en')"
+                            class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 {{ app()->getLocale() === 'en' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900' }}">
+                            EN
+                        </button>
+                        <button onclick="changeLanguage('ar')"
+                            class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 {{ app()->getLocale() === 'ar' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900' }}">
+                            عربي
+                        </button>
+                    </div>
                     <span class="text-gray-700">{{ auth()->user()->name }}</span>
                     <span class="text-sm text-gray-500">({{ auth()->user()->role?->name }})</span>
                     <form action="{{ route('logout') }}" method="POST" class="inline">
                         @csrf
                         <button type="submit" class="text-red-600 hover:text-red-800">
-                            تسجيل خروج
+                            {{ __('Logout') }}
                         </button>
                     </form>
                 </div>
@@ -31,7 +42,7 @@
     <!-- Page Header -->
     <header class="bg-white shadow-sm">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <h2 class="text-2xl font-bold text-gray-900">لوحة التحكم</h2>
+            <h2 class="text-2xl font-bold text-gray-900">{{ __('Dashboard') }}</h2>
         </div>
     </header>
 
@@ -54,7 +65,7 @@
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">إجمالي الحجوزات</p>
+                        <p class="text-sm font-medium text-gray-600">{{ __('Total Appointments') }}</p>
                         <p class="text-3xl font-bold text-gray-900">0</p>
                     </div>
                     <div class="p-3 bg-blue-100 rounded-full">
@@ -68,7 +79,7 @@
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">الحجوزات المؤكدة</p>
+                        <p class="text-sm font-medium text-gray-600">{{ __('Confirmed Appointments') }}</p>
                         <p class="text-3xl font-bold text-green-600">0</p>
                     </div>
                     <div class="p-3 bg-green-100 rounded-full">
@@ -82,7 +93,7 @@
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">قائمة الانتظار</p>
+                        <p class="text-sm font-medium text-gray-600">{{ __('Waiting Queue') }}</p>
                         <p class="text-3xl font-bold text-yellow-600">0</p>
                     </div>
                     <div class="p-3 bg-yellow-100 rounded-full">
@@ -96,7 +107,7 @@
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">العملاء</p>
+                        <p class="text-sm font-medium text-gray-600">{{ __('Customers') }}</p>
                         <p class="text-3xl font-bold text-purple-600">0</p>
                     </div>
                     <div class="p-3 bg-purple-100 rounded-full">
@@ -111,27 +122,33 @@
         <!-- Quick Links -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <a href="/admin/appointments" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">إدارة الحجوزات</h3>
-                <p class="text-gray-600 text-sm">عرض وإدارة جميع الحجوزات</p>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Manage Appointments') }}</h3>
+                <p class="text-gray-600 text-sm">{{ __('View and manage all appointments') }}</p>
             </a>
 
             <a href="/admin/queue" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">إدارة قائمة الانتظار</h3>
-                <p class="text-gray-600 text-sm">متابعة وإدارة قائمة الانتظار</p>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Manage Queue') }}</h3>
+                <p class="text-gray-600 text-sm">{{ __('Track and manage the waiting queue') }}</p>
             </a>
 
             <a href="/admin/reports" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">التقارير</h3>
-                <p class="text-gray-600 text-sm">عرض التقارير والإحصائيات</p>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Reports') }}</h3>
+                <p class="text-gray-600 text-sm">{{ __('View reports and statistics') }}</p>
             </a>
         </div>
 
         <!-- Welcome Message -->
         <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-blue-900 mb-2">مرحباً {{ auth()->user()->name }}! 👋</h3>
-            <p class="text-blue-800">تم تسجيل الدخول بنجاح كـ <strong>{{ auth()->user()->role?->name }}</strong></p>
-            <p class="text-blue-700 text-sm mt-2">يمكنك الآن إدارة النظام من خلال القوائم أعلاه.</p>
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">{{ __('Welcome') }} {{ auth()->user()->name }}! 👋</h3>
+            <p class="text-blue-800">{{ __('You are logged in as') }} <strong>{{ auth()->user()->role?->name }}</strong></p>
+            <p class="text-blue-700 text-sm mt-2">{{ __('You can now manage the system through the menus above.') }}</p>
         </div>
     </main>
+
+    <script>
+        function changeLanguage(lang) {
+            window.location.href = '/change-language/' + lang;
+        }
+    </script>
 </body>
 </html>

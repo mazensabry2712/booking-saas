@@ -36,5 +36,20 @@
     "No one is being served": "No one is being served",
     "min": "min",
     "No upcoming": "No upcoming",
-    "in line": "in line"
+    "in line": "in line",
+
+    "Dashboard": "Dashboard",
+    "Logout": "Logout",
+    "Total Appointments": "Total Appointments",
+    "Confirmed Appointments": "Confirmed Appointments",
+    "Customers": "Customers",
+    "Manage Appointments": "Manage Appointments",
+    "View and manage all appointments": "View and manage all appointments",
+    "Manage Queue": "Manage Queue",
+    "Track and manage the waiting queue": "Track and manage the waiting queue",
+    "Reports": "Reports",
+    "View reports and statistics": "View reports and statistics",
+    "Welcome": "Welcome",
+    "You are logged in as": "You are logged in as",
+    "You can now manage the system through the menus above.": "You can now manage the system through the menus above."
 }
