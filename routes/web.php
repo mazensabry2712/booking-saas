@@ -85,6 +85,7 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff']
         Route::get('/appointments/{id}', [AdminController::class, 'showAppointment'])->name('api.appointments.show');
         Route::put('/appointments/{id}', [AdminController::class, 'updateAppointment'])->name('api.appointments.update');
         Route::delete('/appointments/{id}', [AdminController::class, 'destroyAppointment'])->name('api.appointments.destroy');
+        Route::patch('/appointments/{id}/status', [AdminController::class, 'quickStatusUpdate'])->name('api.appointments.status');
 
         // Staff Management
         Route::get('/staff/{id}', [AdminController::class, 'showStaff'])->name('api.staff.show');

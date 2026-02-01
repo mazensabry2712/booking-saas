@@ -35,14 +35,96 @@ class AdminController extends Controller
     /**
      * Show appointments page
      */
-    public function appointments()
+    public function appointments(Request $request)
     {
-        $appointments = Appointment::with(['customer', 'staff'])
-            ->orderBy('date', 'desc')
-            ->orderBy('time_slot', 'desc')
-            ->get();
+        // Build query with filters
+        $query = Appointment::with(['customer', 'staff']);
 
-        return view('admin.appointments', compact('appointments'));
+        // Date filter
+        if ($request->filled('date_filter')) {
+            switch ($request->date_filter) {
+                case 'today':
+                    $query->whereDate('date', today());
+                    break;
+                case 'week':
+                    $query->whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()]);
+                    break;
+                case 'month':
+                    $query->whereMonth('date', now()->month)->whereYear('date', now()->year);
+                    break;
+                case 'custom':
+                    if ($request->filled('date_from')) {
+                        $query->whereDate('date', '>=', $request->date_from);
+                    }
+                    if ($request->filled('date_to')) {
+                        $query->whereDate('date', '<=', $request->date_to);
+                    }
+                    break;
+            }
+        }
+
+        // Status filter
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Service filter
+        if ($request->filled('service_type')) {
+            $query->where('service_type', $request->service_type);
+        }
+
+        // Staff filter
+        if ($request->filled('staff_id')) {
+            $query->where('staff_id', $request->staff_id);
+        }
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('customer', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        // Sorting
+        $sortBy = $request->get('sort', 'date');
+        $sortDir = $request->get('dir', 'desc');
+
+        if ($sortBy === 'customer') {
+            $query->join('users', 'appointments.customer_id', '=', 'users.id')
+                  ->orderBy('users.name', $sortDir)
+                  ->select('appointments.*');
+        } else {
+            $query->orderBy($sortBy, $sortDir);
+        }
+
+        // Paginate
+        $appointments = $query->paginate(15)->withQueryString();
+
+        // Statistics
+        $stats = [
+            'today' => Appointment::whereDate('date', today())->count(),
+            'today_confirmed' => Appointment::whereDate('date', today())->where('status', 'confirmed')->count(),
+            'pending' => Appointment::where('status', 'pending')->count(),
+            'this_week' => Appointment::whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'cancelled_month' => Appointment::where('status', 'cancelled')
+                ->whereMonth('date', now()->month)
+                ->whereYear('date', now()->year)
+                ->count(),
+        ];
+
+        // Get services from Services table for filter dropdown
+        $services = Service::where('is_active', true)->get();
+
+        // Get staff for filters
+        $staffRole = Role::whereIn('name', ['Staff', 'Admin Tenant'])->pluck('id');
+        $staffMembers = User::whereIn('role_id', $staffRole)->get();
+
+        return view('admin.appointments', compact('appointments', 'stats', 'services', 'staffMembers'));
     }
 
     /**
@@ -268,6 +350,41 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء التعديل'
+            ], 500);
+        }
+    }
+
+    /**
+     * Quick status update (AJAX) - for changing status from dropdown
+     */
+    public function quickStatusUpdate(Request $request, $id)
+    {
+        try {
+            $appointment = Appointment::findOrFail($id);
+
+            $validated = $request->validate([
+                'status' => 'required|in:pending,confirmed,cancelled,completed'
+            ]);
+
+            $appointment->update(['status' => $validated['status']]);
+
+            return response()->json([
+                'success' => true,
+                'message' => app()->getLocale() === 'ar' ? 'تم تحديث الحالة بنجاح' : 'Status updated successfully',
+                'data' => $appointment
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => app()->getLocale() === 'ar' ? 'خطأ في البيانات' : 'Invalid data',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error updating appointment status: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => app()->getLocale() === 'ar' ? 'حدث خطأ أثناء التحديث' : 'Error updating status'
             ], 500);
         }
     }
