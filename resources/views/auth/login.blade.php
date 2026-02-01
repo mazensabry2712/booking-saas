@@ -137,16 +137,17 @@
                 successDiv.classList.remove('hidden');
                 successDiv.textContent = '✓ ' + texts.loginSuccess;
 
+                // Redirect immediately
+                const userRole = data.user?.role;
                 setTimeout(() => {
-                    const userRole = data.user?.role;
                     if (userRole === 'Admin Tenant' || userRole === 'Staff') {
-                        window.location.href = '/admin/dashboard';
+                        window.location.replace('/admin/dashboard');
                     } else if (userRole === 'Customer') {
-                        window.location.href = '/my-queue';
+                        window.location.replace('/my-queue');
                     } else {
-                        window.location.href = '/';
+                        window.location.replace('/');
                     }
-                }, 1000);
+                }, 500);
             } else {
                 errorDiv.classList.remove('hidden');
                 errorDiv.textContent = '✕ ' + (data.message || data.error || texts.loginError);
