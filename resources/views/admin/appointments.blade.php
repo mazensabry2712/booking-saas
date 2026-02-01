@@ -200,7 +200,10 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Service Type') }}</label>
-                    <input type="text" id="edit_service_type" name="service_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="edit_service_type" name="service_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">{{ __('Select Service Type') }}</option>
+                        <!-- Will be populated dynamically -->
+                    </select>
                 </div>
 
                 <div>
@@ -268,12 +271,18 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Appointment Time') }}</label>
-                    <input type="time" name="appointment_time" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="appointment_time" id="add_appointment_time" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">{{ __('Select time') }}</option>
+                        <!-- Will be populated dynamically -->
+                    </select>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Service Type') }}</label>
-                    <input type="text" name="service_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="service_type" id="add_service_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">{{ __('Select Service Type') }}</option>
+                        <!-- Will be populated dynamically -->
+                    </select>
                 </div>
 
                 <div>
@@ -571,6 +580,66 @@
                 closeEditModal();
             }
         });
+
+        // Load services and time slots
+        const currentLang = '{{ app()->getLocale() }}';
+
+        async function loadServices() {
+            try {
+                const response = await fetch('/api/booking/services');
+                const data = await response.json();
+
+                if (data.success) {
+                    // Add Service Select
+                    const addSelect = document.getElementById('add_service_type');
+                    addSelect.innerHTML = '<option value="">{{ __('Select Service Type') }}</option>';
+
+                    // Edit Service Select
+                    const editSelect = document.getElementById('edit_service_type');
+                    editSelect.innerHTML = '<option value="">{{ __('Select Service Type') }}</option>';
+
+                    data.data.forEach(service => {
+                        const displayName = currentLang === 'ar' && service.name_ar ? service.name_ar : service.name;
+
+                        const option1 = document.createElement('option');
+                        option1.value = service.name; // Store name as value
+                        option1.textContent = displayName;
+                        addSelect.appendChild(option1);
+
+                        const option2 = document.createElement('option');
+                        option2.value = service.name;
+                        option2.textContent = displayName;
+                        editSelect.appendChild(option2);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading services:', error);
+            }
+        }
+
+        async function loadTimeSlots() {
+            try {
+                const response = await fetch('/api/booking/timeslots');
+                const data = await response.json();
+
+                if (data.success) {
+                    const timeSelect = document.getElementById('add_appointment_time');
+                    timeSelect.innerHTML = '<option value="">{{ __('Select time') }}</option>';
+
+                    data.data.forEach(slot => {
+                        const option = document.createElement('option');
+                        option.value = slot.start_time;
+                        option.textContent = `${slot.formatted_start_time} - ${slot.formatted_end_time}`;
+                        timeSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading time slots:', error);
+            }
+        }
+
+        // Load data on page load
+        Promise.all([loadServices(), loadTimeSlots()]);
     </script>
 </body>
 </html>

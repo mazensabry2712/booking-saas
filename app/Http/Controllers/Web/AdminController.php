@@ -5,9 +5,14 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use App\Models\Appointment;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\Service;
+use App\Models\TimeSlot;
+use App\Models\WorkingDay;
+use App\Models\StaffSchedule;
 
 class AdminController extends Controller
 {
@@ -161,9 +166,10 @@ class AdminController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            \Log::error('Error storing appointment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء الحفظ: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء الحفظ'
             ], 500);
         }
     }
@@ -200,9 +206,10 @@ class AdminController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error fetching appointment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء تحميل البيانات'
             ], 500);
         }
     }
@@ -257,9 +264,10 @@ class AdminController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            \Log::error('Error updating appointment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء التعديل: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء التعديل'
             ], 500);
         }
     }
@@ -279,9 +287,10 @@ class AdminController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error deleting appointment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء الحذف: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء الحذف'
             ], 500);
         }
     }
@@ -308,7 +317,7 @@ class AdminController extends Controller
                 [
                     'name' => $validated['customer_name'],
                     'phone' => $validated['customer_phone'],
-                    'password' => bcrypt('password123'),
+                    'password' => bcrypt(\Illuminate\Support\Str::random(32)),
                     'role_id' => $customerRole?->id,
                 ]
             );
@@ -356,9 +365,10 @@ class AdminController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            \Log::error('Error adding to queue: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ: ' . $e->getMessage()
+                'message' => 'حدث خطأ'
             ], 500);
         }
     }
@@ -395,9 +405,10 @@ class AdminController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error calling next in queue: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ: ' . $e->getMessage()
+                'message' => 'حدث خطأ'
             ], 500);
         }
     }
@@ -421,9 +432,10 @@ class AdminController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error serving queue: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ: ' . $e->getMessage()
+                'message' => 'حدث خطأ'
             ], 500);
         }
     }
@@ -452,9 +464,10 @@ class AdminController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error completing queue: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ: ' . $e->getMessage()
+                'message' => 'حدث خطأ'
             ], 500);
         }
     }
@@ -479,9 +492,10 @@ class AdminController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error setting queue priority: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ: ' . $e->getMessage()
+                'message' => 'حدث خطأ'
             ], 500);
         }
     }
@@ -501,10 +515,450 @@ class AdminController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error removing from queue: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ: ' . $e->getMessage()
+                'message' => 'حدث خطأ'
             ], 500);
+        }
+    }
+
+    // ==================== SETTINGS ====================
+
+    /**
+     * Show settings page
+     */
+    public function settings()
+    {
+        $services = Service::orderBy('name')->get();
+        $timeSlots = TimeSlot::orderBy('start_time')->get();
+        $workingDays = WorkingDay::orderBy('day_of_week')->get();
+        $staffMembers = User::whereHas('role', function($q) {
+            $q->whereIn('name', ['Admin Tenant', 'Staff']);
+        })->with('services')->get();
+
+        return view('admin.settings', compact('services', 'timeSlots', 'workingDays', 'staffMembers'));
+    }
+
+    /**
+     * Store new service
+     */
+    public function storeService(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'name_ar' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'price' => 'nullable|numeric|min:0',
+                'is_active' => 'boolean',
+            ]);
+
+            $service = Service::create($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إضافة الخدمة بنجاح',
+                'data' => $service
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error creating service: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'حدث خطأ'], 500);
+        }
+    }
+
+    /**
+     * Get service details
+     */
+    public function showService($id)
+    {
+        $service = Service::findOrFail($id);
+        return response()->json(['success' => true, 'data' => $service]);
+    }
+
+    /**
+     * Update service
+     */
+    public function updateService(Request $request, $id)
+    {
+        try {
+            $service = Service::findOrFail($id);
+
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'name_ar' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'price' => 'nullable|numeric|min:0',
+                'is_active' => 'boolean',
+            ]);
+
+            $service->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تعديل الخدمة بنجاح',
+                'data' => $service
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error updating service: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'حدث خطأ'], 500);
+        }
+    }
+
+    /**
+     * Delete service
+     */
+    public function destroyService($id)
+    {
+        try {
+            $service = Service::findOrFail($id);
+            $service->delete();
+
+            return response()->json(['success' => true, 'message' => 'تم حذف الخدمة بنجاح']);
+        } catch (\Exception $e) {
+            \Log::error('Error deleting service: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'حدث خطأ'], 500);
+        }
+    }
+
+    /**
+     * Store new time slot
+     */
+    public function storeTimeSlot(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'start_time' => 'required',
+                'end_time' => 'required|after:start_time',
+            ]);
+
+            $timeSlot = TimeSlot::create($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إضافة الوقت بنجاح',
+                'data' => $timeSlot
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error creating time slot: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'حدث خطأ'], 500);
+        }
+    }
+
+    /**
+     * Toggle time slot status
+     */
+    public function toggleTimeSlot(Request $request, $id)
+    {
+        try {
+            $timeSlot = TimeSlot::findOrFail($id);
+            $timeSlot->update(['is_active' => $request->is_active]);
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false], 500);
+        }
+    }
+
+    /**
+     * Delete time slot
+     */
+    public function destroyTimeSlot($id)
+    {
+        try {
+            TimeSlot::findOrFail($id)->delete();
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false], 500);
+        }
+    }
+
+    /**
+     * Toggle working day status
+     */
+    public function toggleWorkingDay(Request $request, $id)
+    {
+        try {
+            $workingDay = WorkingDay::findOrFail($id);
+            $workingDay->update(['is_active' => $request->is_active]);
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false], 500);
+        }
+    }
+
+    /**
+     * Toggle staff service assignment
+     */
+    public function toggleStaffService(Request $request)
+    {
+        try {
+            $user = User::findOrFail($request->staff_id);
+
+            if ($request->attach) {
+                $user->services()->syncWithoutDetaching([$request->service_id]);
+            } else {
+                $user->services()->detach($request->service_id);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('Error toggling staff service: ' . $e->getMessage());
+            return response()->json(['success' => false], 500);
+        }
+    }
+
+    /**
+     * Get services for dropdown (API)
+     */
+    public function getServices()
+    {
+        $services = Service::active()->get();
+        return response()->json(['success' => true, 'data' => $services]);
+    }
+
+    /**
+     * Get time slots for dropdown (API)
+     */
+    public function getTimeSlots()
+    {
+        $timeSlots = TimeSlot::active()->orderBy('start_time')->get();
+        return response()->json(['success' => true, 'data' => $timeSlots]);
+    }
+
+    /**
+     * Get working days (API)
+     */
+    public function getWorkingDays()
+    {
+        $workingDays = WorkingDay::active()->orderBy('day_of_week')->get();
+        return response()->json(['success' => true, 'data' => $workingDays]);
+    }
+
+    /**
+     * Get staff services (API)
+     */
+    public function getStaffServices($staffId)
+    {
+        $user = User::with('services')->findOrFail($staffId);
+        return response()->json(['success' => true, 'data' => $user->services]);
+    }
+
+    // ==================== STAFF MANAGEMENT ====================
+
+    /**
+     * Show staff management page
+     */
+    public function staff()
+    {
+        $staffRole = Role::where('name', 'Staff')->first();
+        $staffMembers = User::where('role_id', $staffRole?->id)
+            ->with(['services', 'activeSchedules'])
+            ->get();
+
+        $services = Service::orderBy('name')->get();
+
+        return view('admin.staff', compact('staffMembers', 'services'));
+    }
+
+    /**
+     * Get staff member details (API)
+     */
+    public function showStaff($id)
+    {
+        try {
+            $staff = User::with(['services', 'schedules'])->findOrFail($id);
+            return response()->json(['success' => true, 'data' => $staff]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Staff not found'], 404);
+        }
+    }
+
+    /**
+     * Store new staff member (API)
+     */
+    public function storeStaff(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'phone' => 'nullable|string|max:20',
+                'password' => 'required|string|min:6',
+                'services' => 'array',
+                'schedule' => 'array',
+            ]);
+
+            $staffRole = Role::where('name', 'Staff')->first();
+            if (!$staffRole) {
+                return response()->json(['success' => false, 'message' => 'Staff role not found'], 500);
+            }
+
+            DB::beginTransaction();
+
+            // Create user
+            $user = User::create([
+                'role_id' => $staffRole->id,
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'password' => Hash::make($validated['password']),
+            ]);
+
+            // Attach services
+            if (!empty($request->services)) {
+                $user->services()->sync($request->services);
+            }
+
+            // Create schedule
+            if (!empty($request->schedule)) {
+                foreach ($request->schedule as $schedule) {
+                    StaffSchedule::create([
+                        'user_id' => $user->id,
+                        'day_of_week' => $schedule['day_of_week'],
+                        'start_time' => $schedule['start_time'],
+                        'end_time' => $schedule['end_time'],
+                        'is_active' => $schedule['is_active'] ?? true,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إضافة الموظف بنجاح',
+                'data' => $user->load(['services', 'schedules'])
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error creating staff: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'حدث خطأ'], 500);
+        }
+    }
+
+    /**
+     * Update staff member (API)
+     */
+    public function updateStaff(Request $request, $id)
+    {
+        try {
+            $staff = User::findOrFail($id);
+
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email,' . $id,
+                'phone' => 'nullable|string|max:20',
+                'services' => 'array',
+                'schedule' => 'array',
+            ]);
+
+            DB::beginTransaction();
+
+            // Update user
+            $staff->update([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+            ]);
+
+            // Sync services
+            $staff->services()->sync($request->services ?? []);
+
+            // Update schedule - delete old and create new
+            StaffSchedule::where('user_id', $staff->id)->delete();
+
+            if (!empty($request->schedule)) {
+                foreach ($request->schedule as $schedule) {
+                    StaffSchedule::create([
+                        'user_id' => $staff->id,
+                        'day_of_week' => $schedule['day_of_week'],
+                        'start_time' => $schedule['start_time'],
+                        'end_time' => $schedule['end_time'],
+                        'is_active' => $schedule['is_active'] ?? true,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تعديل الموظف بنجاح',
+                'data' => $staff->load(['services', 'schedules'])
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error updating staff: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'حدث خطأ'], 500);
+        }
+    }
+
+    /**
+     * Delete staff member (API)
+     */
+    public function destroyStaff($id)
+    {
+        try {
+            $staff = User::findOrFail($id);
+
+            // Delete schedules
+            StaffSchedule::where('user_id', $staff->id)->delete();
+
+            // Detach services
+            $staff->services()->detach();
+
+            // Delete user
+            $staff->delete();
+
+            return response()->json(['success' => true, 'message' => 'تم حذف الموظف بنجاح']);
+        } catch (\Exception $e) {
+            \Log::error('Error deleting staff: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'حدث خطأ'], 500);
+        }
+    }
+
+    /**
+     * Get staff by service (API for booking)
+     */
+    public function getStaffByService($serviceId)
+    {
+        try {
+            $staff = User::whereHas('services', function($q) use ($serviceId) {
+                $q->where('services.id', $serviceId);
+            })
+            ->whereHas('role', function($q) {
+                $q->where('name', 'Staff');
+            })
+            ->with(['activeSchedules'])
+            ->get(['id', 'name']);
+
+            return response()->json(['success' => true, 'data' => $staff]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error'], 500);
+        }
+    }
+
+    /**
+     * Get staff schedule (API for booking)
+     */
+    public function getStaffSchedule($staffId)
+    {
+        try {
+            $schedules = StaffSchedule::where('user_id', $staffId)
+                ->where('is_active', true)
+                ->orderBy('day_of_week')
+                ->get();
+
+            return response()->json(['success' => true, 'data' => $schedules]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error'], 500);
         }
     }
 }

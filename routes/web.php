@@ -37,6 +37,16 @@ Route::middleware(['tenant', 'tenant.locale'])->group(function () {
         Route::post('/logout', [\App\Http\Controllers\Auth\TenantAuthController::class, 'logout'])->middleware('auth');
     });
 
+    // Public API endpoints for booking form
+    Route::prefix('api/booking')->group(function () {
+        Route::get('/services', [AdminController::class, 'getServices']);
+        Route::get('/timeslots', [AdminController::class, 'getTimeSlots']);
+        Route::get('/workingdays', [AdminController::class, 'getWorkingDays']);
+        Route::get('/staff/{id}/services', [AdminController::class, 'getStaffServices']);
+        Route::get('/staff/by-service/{serviceId}', [AdminController::class, 'getStaffByService']);
+        Route::get('/staff/{id}/schedule', [AdminController::class, 'getStaffSchedule']);
+    });
+
     // Logout route (for forms)
     Route::post('/logout', function () {
         auth()->logout();
@@ -62,6 +72,12 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff']
     // Appointments Management
     Route::get('/appointments', [AdminController::class, 'appointments'])->name('appointments');
 
+    // Staff Management
+    Route::get('/staff', [AdminController::class, 'staff'])->name('staff');
+
+    // Settings Page
+    Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
+
     // API endpoints for AJAX (inside admin context)
     Route::prefix('api')->group(function () {
         // Appointments
@@ -70,6 +86,12 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff']
         Route::put('/appointments/{id}', [AdminController::class, 'updateAppointment'])->name('api.appointments.update');
         Route::delete('/appointments/{id}', [AdminController::class, 'destroyAppointment'])->name('api.appointments.destroy');
 
+        // Staff Management
+        Route::get('/staff/{id}', [AdminController::class, 'showStaff'])->name('api.staff.show');
+        Route::post('/staff', [AdminController::class, 'storeStaff'])->name('api.staff.store');
+        Route::put('/staff/{id}', [AdminController::class, 'updateStaff'])->name('api.staff.update');
+        Route::delete('/staff/{id}', [AdminController::class, 'destroyStaff'])->name('api.staff.destroy');
+
         // Queue Management
         Route::post('/queue/add', [AdminController::class, 'addToQueue'])->name('api.queue.add');
         Route::post('/queue/call-next', [AdminController::class, 'callNext'])->name('api.queue.callNext');
@@ -77,6 +99,31 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff']
         Route::post('/queue/{id}/complete', [AdminController::class, 'completeQueue'])->name('api.queue.complete');
         Route::post('/queue/{id}/priority', [AdminController::class, 'setQueuePriority'])->name('api.queue.priority');
         Route::delete('/queue/{id}', [AdminController::class, 'removeQueue'])->name('api.queue.remove');
+
+        // Settings - Services
+        Route::post('/settings/services', [AdminController::class, 'storeService'])->name('api.settings.services.store');
+        Route::get('/settings/services/{id}', [AdminController::class, 'showService'])->name('api.settings.services.show');
+        Route::put('/settings/services/{id}', [AdminController::class, 'updateService'])->name('api.settings.services.update');
+        Route::delete('/settings/services/{id}', [AdminController::class, 'destroyService'])->name('api.settings.services.destroy');
+
+        // Settings - Time Slots
+        Route::post('/settings/timeslots', [AdminController::class, 'storeTimeSlot'])->name('api.settings.timeslots.store');
+        Route::post('/settings/timeslots/{id}/toggle', [AdminController::class, 'toggleTimeSlot'])->name('api.settings.timeslots.toggle');
+        Route::delete('/settings/timeslots/{id}', [AdminController::class, 'destroyTimeSlot'])->name('api.settings.timeslots.destroy');
+
+        // Settings - Working Days
+        Route::post('/settings/workingdays/{id}/toggle', [AdminController::class, 'toggleWorkingDay'])->name('api.settings.workingdays.toggle');
+
+        // Settings - Staff Services
+        Route::post('/settings/staff-services', [AdminController::class, 'toggleStaffService'])->name('api.settings.staffservices');
+    });
+
+    // Public API for dropdowns
+    Route::prefix('api/public')->group(function () {
+        Route::get('/services', [AdminController::class, 'getServices'])->name('api.public.services');
+        Route::get('/timeslots', [AdminController::class, 'getTimeSlots'])->name('api.public.timeslots');
+        Route::get('/workingdays', [AdminController::class, 'getWorkingDays'])->name('api.public.workingdays');
+        Route::get('/staff/{id}/services', [AdminController::class, 'getStaffServices'])->name('api.public.staffservices');
     });
 
     // Queue Management

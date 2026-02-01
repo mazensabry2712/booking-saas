@@ -120,7 +120,7 @@
         </div>
 
         <!-- Quick Links -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <a href="/admin/appointments" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Manage Appointments') }}</h3>
                 <p class="text-gray-600 text-sm">{{ __('View and manage all appointments') }}</p>
@@ -131,9 +131,19 @@
                 <p class="text-gray-600 text-sm">{{ __('Track and manage the waiting queue') }}</p>
             </a>
 
+            <a href="/admin/staff" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Manage Staff') }}</h3>
+                <p class="text-gray-600 text-sm">{{ __('Add and manage staff members') }}</p>
+            </a>
+
             <a href="/admin/reports" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Reports') }}</h3>
                 <p class="text-gray-600 text-sm">{{ __('View reports and statistics') }}</p>
+            </a>
+
+            <a href="/admin/settings" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Settings') }}</h3>
+                <p class="text-gray-600 text-sm">{{ __('Manage services, time slots and working days') }}</p>
             </a>
         </div>
 

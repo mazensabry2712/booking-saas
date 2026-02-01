@@ -20,13 +20,20 @@ class AppointmentController extends Controller
     {
         try {
             $validated = $request->validate([
-                'customer_name' => 'required|string|max:255',
+                'customer_name' => 'required|string|max:255|regex:/^[\p{L}\p{N}\s\-\.]+$/u',
                 'customer_email' => 'required|email|max:255',
-                'customer_phone' => 'required|string|max:20',
-                'appointment_date' => 'required|date',
+                'customer_phone' => 'required|string|max:20|regex:/^[\d\+\-\(\)\s]+$/',
+                'appointment_date' => 'required|date|after_or_equal:today',
                 'staff_id' => 'nullable|exists:users,id',
                 'notes' => 'nullable|string|max:1000',
             ]);
+
+            // Sanitize inputs
+            $validated['customer_name'] = strip_tags(trim($validated['customer_name']));
+            $validated['customer_phone'] = preg_replace('/[^\d\+\-\(\)\s]/', '', $validated['customer_phone']);
+            if (!empty($validated['notes'])) {
+                $validated['notes'] = strip_tags(trim($validated['notes']));
+            }
 
             // Parse date and time from appointment_date
             $appointmentDateTime = \Carbon\Carbon::parse($validated['appointment_date']);
@@ -90,10 +97,10 @@ class AppointmentController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            \Log::error('Error booking appointment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while booking the appointment',
-                'error' => $e->getMessage()
+                'message' => 'An error occurred while booking the appointment'
             ], 500);
         }
     }

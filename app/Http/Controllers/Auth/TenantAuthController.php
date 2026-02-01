@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 class TenantAuthController extends Controller
@@ -15,6 +16,16 @@ class TenantAuthController extends Controller
      */
     public function login(Request $request)
     {
+        // Rate limiting for login attempts
+        $throttleKey = 'login:' . $request->ip() . ':' . $request->input('email');
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            throw ValidationException::withMessages([
+                'email' => ["Too many login attempts. Please try again in {$seconds} seconds."],
+            ]);
+        }
+
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
@@ -34,10 +45,14 @@ class TenantAuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
+            RateLimiter::hit($throttleKey, 60); // 1 minute decay
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
+
+        // Clear rate limiter on successful login
+        RateLimiter::clear($throttleKey);
 
         // Get user role
         $role = $user->role;

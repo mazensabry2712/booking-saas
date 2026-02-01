@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Global middleware - security headers for all requests
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+
         // Register tenancy middleware
         $middleware->alias([
             'tenant' => \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class,
@@ -31,6 +34,9 @@ return Application::configure(basePath: dirname(__DIR__))
             // Role-based middleware
             'role' => \App\Http\Middleware\CheckRole::class,
             'ability' => \App\Http\Middleware\CheckTokenAbility::class,
+
+            // Rate limiting
+            'throttle.api' => \App\Http\Middleware\ThrottleRequests::class,
         ]);
 
         // Exclude API routes from CSRF verification

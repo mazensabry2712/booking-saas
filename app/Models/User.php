@@ -81,6 +81,21 @@ class User extends Authenticatable
         return $this->hasMany(Invoice::class, 'customer_id');
     }
 
+    public function services()
+    {
+        return $this->belongsToMany(Service::class, 'staff_services');
+    }
+
+    public function schedules()
+    {
+        return $this->hasMany(StaffSchedule::class);
+    }
+
+    public function activeSchedules()
+    {
+        return $this->hasMany(StaffSchedule::class)->where('is_active', true);
+    }
+
     // Helper methods
     public function isSuperAdmin(): bool
     {

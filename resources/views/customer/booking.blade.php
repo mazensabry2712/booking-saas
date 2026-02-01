@@ -7,7 +7,7 @@
 
     <title>{{ __('Book Appointment') }} - {{ tenant()->name }}</title>
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
     <div class="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
@@ -68,55 +68,55 @@
                         placeholder="{{ __('Enter your phone number') }}">
                 </div>
 
-                <!-- Date -->
+                <!-- Step 1: Service Type -->
                 <div>
+                    <label for="service_id" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                        {{ __('Service Type') }} <span class="text-red-500">*</span>
+                    </label>
+                    <select id="service_id" name="service_id" required
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">{{ __('Select Service Type') }}</option>
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+
+                <!-- Step 2: Staff (appears after selecting service) -->
+                <div id="staffSection" class="hidden">
+                    <label for="staff_id" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                        {{ __('Select Staff') }} <span class="text-red-500">*</span>
+                    </label>
+                    <select id="staff_id" name="staff_id" required
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">{{ __('Select Staff Member') }}</option>
+                        <!-- Will be populated dynamically based on service -->
+                    </select>
+                </div>
+
+                <!-- Step 3: Date (appears after selecting staff) -->
+                <div id="dateSection" class="hidden">
                     <label for="appointment_date" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         {{ __('Appointment Date') }} <span class="text-red-500">*</span>
                     </label>
                     <input type="date" id="appointment_date" name="appointment_date" required
                         class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         min="{{ date('Y-m-d') }}">
+                    <p id="availableDays" class="mt-1 text-sm text-gray-500"></p>
                 </div>
 
-                <!-- Time -->
-                <div>
+                <!-- Step 4: Time (appears after selecting date) -->
+                <div id="timeSection" class="hidden">
                     <label for="appointment_time" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         {{ __('Appointment Time') }} <span class="text-red-500">*</span>
                     </label>
                     <select id="appointment_time" name="appointment_time" required
                         class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">{{ __('Select time') }}</option>
-                        <option value="09:00">09:00 AM</option>
-                        <option value="09:30">09:30 AM</option>
-                        <option value="10:00">10:00 AM</option>
-                        <option value="10:30">10:30 AM</option>
-                        <option value="11:00">11:00 AM</option>
-                        <option value="11:30">11:30 AM</option>
-                        <option value="12:00">12:00 PM</option>
-                        <option value="14:00">02:00 PM</option>
-                        <option value="14:30">02:30 PM</option>
-                        <option value="15:00">03:00 PM</option>
-                        <option value="15:30">03:30 PM</option>
-                        <option value="16:00">04:00 PM</option>
-                        <option value="16:30">04:30 PM</option>
-                        <option value="17:00">05:00 PM</option>
-                    </select>
-                </div>
-
-                <!-- Staff Selection -->
-                <div>
-                    <label for="staff_id" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                        {{ __('Preferred Staff') }}
-                    </label>
-                    <select id="staff_id" name="staff_id"
-                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">{{ __('Any available staff') }}</option>
-                        <!-- Will be populated dynamically -->
+                        <!-- Will be populated dynamically based on staff schedule -->
                     </select>
                 </div>
 
                 <!-- Notes -->
-                <div>
+                <div id="notesSection" class="hidden">
                     <label for="notes" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         {{ __('Additional Notes') }}
                     </label>
@@ -127,7 +127,7 @@
 
                 <!-- Submit Button -->
                 <button type="submit" id="submitBtn"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 sm:py-4 px-4 sm:px-6 text-sm sm:text-base rounded-lg transition duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 sm:py-4 px-4 sm:px-6 text-sm sm:text-base rounded-lg transition duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     {{ __('Book Appointment') }}
                 </button>
             </form>
@@ -168,23 +168,171 @@
     </div>
 
     <script>
-        // Staff data from server
-        const staffData = @json(\App\Models\Role::where('name', 'Staff')->first()?->users()->select('id', 'name')->get() ?? []);
+        const currentLang = '{{ app()->getLocale() }}';
+        let staffSchedules = [];
 
-        // Load available staff
-        function loadStaff() {
+        // Load services on page load
+        async function loadServices() {
             try {
-                const staffSelect = document.getElementById('staff_id');
-                staffData.forEach(staff => {
-                    const option = document.createElement('option');
-                    option.value = staff.id;
-                    option.textContent = staff.name;
-                    staffSelect.appendChild(option);
-                });
+                const response = await fetch('/api/booking/services');
+                const data = await response.json();
+
+                if (data.success && data.data.length > 0) {
+                    const serviceSelect = document.getElementById('service_id');
+                    serviceSelect.innerHTML = '<option value="">{{ __('Select Service Type') }}</option>';
+
+                    data.data.forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service.id;
+                        option.textContent = currentLang === 'ar' && service.name_ar ? service.name_ar : service.name;
+                        if (service.duration) {
+                            option.textContent += ` (${service.duration} {{ __('min') }})`;
+                        }
+                        serviceSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading services:', error);
+            }
+        }
+
+        // When service is selected, load staff
+        document.getElementById('service_id').addEventListener('change', async function() {
+            const serviceId = this.value;
+
+            // Hide subsequent sections
+            document.getElementById('staffSection').classList.add('hidden');
+            document.getElementById('dateSection').classList.add('hidden');
+            document.getElementById('timeSection').classList.add('hidden');
+            document.getElementById('notesSection').classList.add('hidden');
+            document.getElementById('submitBtn').classList.add('hidden');
+
+            if (!serviceId) return;
+
+            try {
+                const response = await fetch(`/api/booking/staff/by-service/${serviceId}`);
+                const data = await response.json();
+
+                if (data.success && data.data.length > 0) {
+                    const staffSelect = document.getElementById('staff_id');
+                    staffSelect.innerHTML = '<option value="">{{ __('Select Staff Member') }}</option>';
+
+                    data.data.forEach(staff => {
+                        const option = document.createElement('option');
+                        option.value = staff.id;
+                        option.textContent = staff.name;
+                        staffSelect.appendChild(option);
+                    });
+
+                    document.getElementById('staffSection').classList.remove('hidden');
+                } else {
+                    alert('{{ __('No staff available for this service') }}');
+                }
             } catch (error) {
                 console.error('Error loading staff:', error);
             }
-        }
+        });
+
+        // When staff is selected, load their schedule
+        document.getElementById('staff_id').addEventListener('change', async function() {
+            const staffId = this.value;
+
+            // Hide subsequent sections
+            document.getElementById('dateSection').classList.add('hidden');
+            document.getElementById('timeSection').classList.add('hidden');
+            document.getElementById('notesSection').classList.add('hidden');
+            document.getElementById('submitBtn').classList.add('hidden');
+
+            if (!staffId) return;
+
+            try {
+                const response = await fetch(`/api/booking/staff/${staffId}/schedule`);
+                const data = await response.json();
+
+                if (data.success && data.data.length > 0) {
+                    staffSchedules = data.data;
+
+                    // Show available days hint
+                    const dayNames = {
+                        0: currentLang === 'ar' ? 'الأحد' : 'Sunday',
+                        1: currentLang === 'ar' ? 'الإثنين' : 'Monday',
+                        2: currentLang === 'ar' ? 'الثلاثاء' : 'Tuesday',
+                        3: currentLang === 'ar' ? 'الأربعاء' : 'Wednesday',
+                        4: currentLang === 'ar' ? 'الخميس' : 'Thursday',
+                        5: currentLang === 'ar' ? 'الجمعة' : 'Friday',
+                        6: currentLang === 'ar' ? 'السبت' : 'Saturday'
+                    };
+
+                    const availableDaysText = staffSchedules.map(s => dayNames[s.day_of_week]).join(', ');
+                    document.getElementById('availableDays').textContent =
+                        '{{ __('Available days') }}: ' + availableDaysText;
+
+                    document.getElementById('dateSection').classList.remove('hidden');
+                    document.getElementById('appointment_date').value = '';
+                } else {
+                    alert('{{ __('This staff member has no available schedule') }}');
+                }
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+            }
+        });
+
+        // When date is selected, show available times
+        document.getElementById('appointment_date').addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const dayOfWeek = selectedDate.getDay();
+
+            // Find schedule for this day
+            const schedule = staffSchedules.find(s => s.day_of_week === dayOfWeek);
+
+            if (!schedule) {
+                this.setCustomValidity('{{ __('This staff member is not available on this day') }}');
+                this.reportValidity();
+                document.getElementById('timeSection').classList.add('hidden');
+                document.getElementById('notesSection').classList.add('hidden');
+                document.getElementById('submitBtn').classList.add('hidden');
+                return;
+            }
+
+            this.setCustomValidity('');
+
+            // Populate time dropdown
+            const timeSelect = document.getElementById('appointment_time');
+            timeSelect.innerHTML = '<option value="">{{ __('Select time') }}</option>';
+
+            // Generate time slots based on schedule
+            const startTime = schedule.start_time;
+            const endTime = schedule.end_time;
+
+            let current = new Date(`2000-01-01 ${startTime}`);
+            const end = new Date(`2000-01-01 ${endTime}`);
+
+            while (current < end) {
+                const timeValue = current.toTimeString().substring(0, 5);
+                const timeDisplay = current.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                const option = document.createElement('option');
+                option.value = timeValue;
+                option.textContent = timeDisplay;
+                timeSelect.appendChild(option);
+
+                // Add 30 minutes
+                current.setMinutes(current.getMinutes() + 30);
+            }
+
+            document.getElementById('timeSection').classList.remove('hidden');
+        });
+
+        // When time is selected, show notes and submit button
+        document.getElementById('appointment_time').addEventListener('change', function() {
+            if (this.value) {
+                document.getElementById('notesSection').classList.remove('hidden');
+                document.getElementById('submitBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('notesSection').classList.add('hidden');
+                document.getElementById('submitBtn').classList.add('hidden');
+            }
+        });
 
         // Handle form submission
         document.getElementById('bookingForm').addEventListener('submit', async (e) => {
@@ -218,7 +366,8 @@
                         customer_email: formData.get('email'),
                         customer_phone: formData.get('phone'),
                         appointment_date: appointmentDateTime,
-                        staff_id: formData.get('staff_id') || null,
+                        staff_id: formData.get('staff_id'),
+                        service_id: formData.get('service_id'),
                         notes: formData.get('notes')
                     })
                 });
@@ -228,6 +377,13 @@
                 if (response.ok && data.success) {
                     successMsg.classList.remove('hidden');
                     e.target.reset();
+
+                    // Hide all sections
+                    document.getElementById('staffSection').classList.add('hidden');
+                    document.getElementById('dateSection').classList.add('hidden');
+                    document.getElementById('timeSection').classList.add('hidden');
+                    document.getElementById('notesSection').classList.add('hidden');
+                    document.getElementById('submitBtn').classList.add('hidden');
 
                     // Scroll to success message
                     successMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -244,8 +400,8 @@
             }
         });
 
-        // Load staff on page load
-        loadStaff();
+        // Load services on page load
+        loadServices();
 
         // Change Language Function
         function changeLanguage(lang) {
