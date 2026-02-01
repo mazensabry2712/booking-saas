@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 use App\Http\Controllers\Tenant\AppointmentController;
+use App\Http\Middleware\SetTenantLocale;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,33 +20,47 @@ use App\Http\Controllers\Tenant\AppointmentController;
 |
 */
 
-// Booking Form - Public Page
-Route::get('/', function () {
-    return redirect()->route('booking.form');
-});
+// Change Language - Must be OUTSIDE the locale middleware to avoid redirect loop
+Route::get('/change-language/{lang}', function ($lang) {
+    if (in_array($lang, ['en', 'ar'])) {
+        session()->put('locale', $lang);
+        session()->save();
+    }
 
-Route::get('/book', function () {
-    return view('customer.booking');
-})->name('booking.form');
+    return redirect()->back();
+})->name('change.language');
 
-// Queue Status Page
-Route::get('/queue/status', function () {
-    return view('customer.queue-status');
-})->name('queue.status');
+// Routes with locale middleware
+Route::middleware([SetTenantLocale::class])->group(function () {
 
-// Public API Routes
-Route::prefix('api')->group(function () {
-    // Get staff list
-    Route::get('staff', function () {
-        $staffRole = \App\Models\Role::where('name', 'Staff')->first();
-        if (!$staffRole) {
-            return response()->json([]);
-        }
-        return \App\Models\User::where('role_id', $staffRole->id)
-            ->select('id', 'name')
-            ->get();
+    // Booking Form - Public Page
+    Route::get('/', function () {
+        return redirect()->route('customer.booking');
     });
 
-    // Create appointment (public)
-    Route::post('appointments', [AppointmentController::class, 'store']);
+    Route::get('/book', function () {
+        return view('customer.booking');
+    })->name('customer.booking');
+
+    // Queue Status Page
+    Route::get('/queue/status', function () {
+        return view('customer.queue-status');
+    })->name('queue.status');
+
+    // Public API Routes
+    Route::prefix('api')->group(function () {
+        // Get staff list
+        Route::get('staff', function () {
+            $staffRole = \App\Models\Role::where('name', 'Staff')->first();
+            if (!$staffRole) {
+                return response()->json([]);
+            }
+            return \App\Models\User::where('role_id', $staffRole->id)
+                ->select('id', 'name')
+                ->get();
+        });
+
+        // Create appointment (public)
+        Route::post('appointments', [AppointmentController::class, 'store']);
+    });
 });

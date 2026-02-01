@@ -10,65 +10,81 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">{{ tenant()->name }}</h1>
-            <p class="text-gray-600">{{ __('Book your appointment online') }}</p>
+    <div class="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <!-- Header with Language Switcher -->
+        <div class="mb-6 sm:mb-8">
+            <!-- Language Switcher -->
+            <div class="flex justify-end mb-4">
+                <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
+                    <button onclick="changeLanguage('en')"
+                        class="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 {{ app()->getLocale() === 'en' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900' }}">
+                        EN
+                    </button>
+                    <button onclick="changeLanguage('ar')"
+                        class="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 {{ app()->getLocale() === 'ar' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900' }}">
+                        عربي
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-1 sm:mb-2">{{ tenant()->name }}</h1>
+                <p class="text-sm sm:text-base text-gray-600">{{ __('Book your appointment online') }}</p>
+            </div>
         </div>
 
         <!-- Booking Form -->
-        <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8">
-            <form id="bookingForm" class="space-y-6">
+        <div class="max-w-2xl mx-auto bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 md:p-8">
+            <form id="bookingForm" class="space-y-4 sm:space-y-6">
                 @csrf
 
                 <!-- Customer Name -->
                 <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         {{ __('Full Name') }} <span class="text-red-500">*</span>
                     </label>
                     <input type="text" id="name" name="name" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="{{ __('Enter your full name') }}">
                 </div>
 
                 <!-- Email -->
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         {{ __('Email') }} <span class="text-red-500">*</span>
                     </label>
                     <input type="email" id="email" name="email" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="{{ __('Enter your email') }}">
                 </div>
 
                 <!-- Phone -->
                 <div>
-                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         {{ __('Phone Number') }} <span class="text-red-500">*</span>
                     </label>
                     <input type="tel" id="phone" name="phone" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="{{ __('Enter your phone number') }}">
                 </div>
 
                 <!-- Date -->
                 <div>
-                    <label for="appointment_date" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="appointment_date" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         {{ __('Appointment Date') }} <span class="text-red-500">*</span>
                     </label>
                     <input type="date" id="appointment_date" name="appointment_date" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         min="{{ date('Y-m-d') }}">
                 </div>
 
                 <!-- Time -->
                 <div>
-                    <label for="appointment_time" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="appointment_time" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         {{ __('Appointment Time') }} <span class="text-red-500">*</span>
                     </label>
                     <select id="appointment_time" name="appointment_time" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">{{ __('Select time') }}</option>
                         <option value="09:00">09:00 AM</option>
                         <option value="09:30">09:30 AM</option>
@@ -89,11 +105,11 @@
 
                 <!-- Staff Selection -->
                 <div>
-                    <label for="staff_id" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="staff_id" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         {{ __('Preferred Staff') }}
                     </label>
                     <select id="staff_id" name="staff_id"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">{{ __('Any available staff') }}</option>
                         <!-- Will be populated dynamically -->
                     </select>
@@ -101,51 +117,51 @@
 
                 <!-- Notes -->
                 <div>
-                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                         {{ __('Additional Notes') }}
                     </label>
                     <textarea id="notes" name="notes" rows="3"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="{{ __('Any special requests or notes...') }}"></textarea>
                 </div>
 
                 <!-- Submit Button -->
                 <button type="submit" id="submitBtn"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-lg transition duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 sm:py-4 px-4 sm:px-6 text-sm sm:text-base rounded-lg transition duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     {{ __('Book Appointment') }}
                 </button>
             </form>
 
             <!-- Success Message -->
-            <div id="successMessage" class="hidden mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div id="successMessage" class="hidden mt-4 sm:mt-6 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div class="flex items-center">
-                    <svg class="w-6 h-6 text-green-500 {{ app()->getLocale() === 'ar' ? 'ml-3' : 'mr-3' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-500 flex-shrink-0 {{ app()->getLocale() === 'ar' ? 'ml-2 sm:ml-3' : 'mr-2 sm:mr-3' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                     <div>
-                        <p class="font-semibold text-green-800">{{ __('Appointment Booked Successfully!') }}</p>
-                        <p class="text-sm text-green-700">{{ __('You will receive a confirmation email shortly.') }}</p>
+                        <p class="font-semibold text-green-800 text-sm sm:text-base">{{ __('Appointment Booked Successfully!') }}</p>
+                        <p class="text-xs sm:text-sm text-green-700">{{ __('You will receive a confirmation email shortly.') }}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Error Message -->
-            <div id="errorMessage" class="hidden mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div id="errorMessage" class="hidden mt-4 sm:mt-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div class="flex items-center">
-                    <svg class="w-6 h-6 text-red-500 {{ app()->getLocale() === 'ar' ? 'ml-3' : 'mr-3' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-500 flex-shrink-0 {{ app()->getLocale() === 'ar' ? 'ml-2 sm:ml-3' : 'mr-2 sm:mr-3' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                     <div>
-                        <p class="font-semibold text-red-800">{{ __('Booking Failed') }}</p>
-                        <p class="text-sm text-red-700" id="errorText"></p>
+                        <p class="font-semibold text-red-800 text-sm sm:text-base">{{ __('Booking Failed') }}</p>
+                        <p class="text-xs sm:text-sm text-red-700" id="errorText"></p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Queue Status Link -->
-        <div class="text-center mt-8">
-            <a href="{{ route('queue.status') }}" class="text-blue-600 hover:text-blue-700 font-medium">
+        <div class="text-center mt-6 sm:mt-8">
+            <a href="{{ route('queue.status') }}" class="text-sm sm:text-base text-blue-600 hover:text-blue-700 font-medium">
                 {{ __('Check Queue Status') }} →
             </a>
         </div>
@@ -230,6 +246,11 @@
 
         // Load staff on page load
         loadStaff();
+
+        // Change Language Function
+        function changeLanguage(lang) {
+            window.location.href = '/change-language/' + lang;
+        }
     </script>
 </body>
 </html>

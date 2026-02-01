@@ -18,13 +18,23 @@ class SetTenantLocale
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $tenant = $request->tenant;
-
-        if ($tenant && $tenant->settings && $tenant->settings->language) {
-            App::setLocale($tenant->settings->language);
+        // Check if user has selected a language in session
+        if (session()->has('locale')) {
+            $locale = session('locale');
+            App::setLocale($locale);
         } else {
+            // Fall back to tenant settings or default
+            try {
+                $tenant = tenant();
 
-            App::setLocale(config('app.locale'));
+                if ($tenant && isset($tenant->settings) && isset($tenant->settings->language)) {
+                    App::setLocale($tenant->settings->language);
+                } else {
+                    App::setLocale(config('app.locale', 'en'));
+                }
+            } catch (\Exception $e) {
+                App::setLocale(config('app.locale', 'en'));
+            }
         }
 
         return $next($request);

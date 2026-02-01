@@ -11,6 +11,15 @@ use App\Http\Controllers\Web\AdminController;
 |--------------------------------------------------------------------------
 */
 
+// Change Language - Must be before other routes
+Route::middleware(['tenant'])->get('/change-language/{lang}', function ($lang) {
+    if (in_array($lang, ['en', 'ar'])) {
+        session()->put('locale', $lang);
+        session()->save();
+    }
+    return redirect()->back();
+})->name('change.language');
+
 // Public Customer Routes (Tenant-aware)
 Route::middleware(['tenant', 'tenant.locale'])->group(function () {
 
