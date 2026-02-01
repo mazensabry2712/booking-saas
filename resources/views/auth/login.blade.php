@@ -6,9 +6,9 @@
     <title>تسجيل الدخول - {{ tenant()->name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gradient-to-br from-purple-900 via-purple-700 to-purple-900 min-h-screen flex items-center justify-center p-4">
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
 
-    <div class="bg-white w-full max-w-lg p-10 shadow-xl">
+    <div class="bg-white w-full max-w-lg p-10 shadow-xl rounded-2xl">
 
         <!-- Header -->
         <div class="text-center mb-8">
@@ -24,7 +24,7 @@
             <div>
                 <label class="block text-gray-700 font-medium mb-2">البريد الإلكتروني</label>
                 <input type="email" id="email" name="email" required
-                       class="w-full px-4 py-3 border-2 border-gray-300 focus:border-purple-600 outline-none"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                        placeholder="admin@demo.localhost">
             </div>
 
@@ -32,7 +32,7 @@
             <div>
                 <label class="block text-gray-700 font-medium mb-2">كلمة المرور</label>
                 <input type="password" id="password" name="password" required
-                       class="w-full px-4 py-3 border-2 border-gray-300 focus:border-purple-600 outline-none"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                        placeholder="password123">
             </div>
 
@@ -42,7 +42,7 @@
                     <input type="checkbox" id="remember" class="w-4 h-4 ml-2">
                     <span class="text-gray-700">تذكرني</span>
                 </label>
-                <a href="#" class="text-purple-600 hover:underline">نسيت كلمة المرور؟</a>
+                <a href="#" class="text-blue-600 hover:underline">نسيت كلمة المرور؟</a>
             </div>
 
             <!-- Messages -->
@@ -54,7 +54,7 @@
 
             <!-- Submit Button -->
             <button type="submit" id="submitBtn"
-                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 text-xl transition duration-200">
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-xl rounded-lg transition duration-200">
                 <span id="btnText">دخول</span>
                 <svg class="hidden animate-spin inline-block w-6 h-6 mr-2" id="loadingSpinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -67,13 +67,13 @@
         <div class="mt-8 pt-6 border-t-2 border-gray-200">
             <p class="text-center text-gray-600 font-bold mb-3">حسابات تجريبية</p>
             <div class="space-y-2 text-sm">
-                <div class="bg-purple-50 p-3 border border-purple-200">
+                <div class="bg-blue-50 p-3 border border-blue-200 rounded-lg">
                     <span class="font-bold">Admin:</span> admin@demo.localhost
                 </div>
-                <div class="bg-indigo-50 p-3 border border-indigo-200">
+                <div class="bg-indigo-50 p-3 border border-indigo-200 rounded-lg">
                     <span class="font-bold">Staff:</span> staff@demo.localhost
                 </div>
-                <div class="bg-gray-50 p-3 border border-gray-200 text-center">
+                <div class="bg-gray-50 p-3 border border-gray-200 rounded-lg text-center">
                     <span class="font-bold">Password:</span> password123
                 </div>
             </div>
