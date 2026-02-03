@@ -676,14 +676,57 @@ class AdminController extends Controller
      */
     public function settings()
     {
-        $services = Service::orderBy('name')->get();
-        $timeSlots = TimeSlot::orderBy('start_time')->get();
-        $workingDays = WorkingDay::orderBy('day_of_week')->get();
-        $staffMembers = User::whereHas('role', function($q) {
-            $q->whereIn('name', ['Admin Tenant', 'Staff']);
-        })->with('services')->get();
+        $tenant = tenant();
+        $settingsModel = \App\Models\Setting::where('tenant_id', $tenant->id)->first();
 
-        return view('admin.settings', compact('services', 'timeSlots', 'workingDays', 'staffMembers'));
+        $settings = $settingsModel ? $settingsModel->toArray() : [];
+
+        return view('admin.settings', compact('settings'));
+    }
+
+    /**
+     * Save business settings
+     */
+    public function saveSettings(Request $request)
+    {
+        try {
+            $tenant = tenant();
+
+            $data = $request->validate([
+                'business_name' => 'nullable|string|max:255',
+                'business_name_ar' => 'nullable|string|max:255',
+                'phone' => 'nullable|string|max:50',
+                'email' => 'nullable|email|max:255',
+                'address' => 'nullable|string|max:500',
+                'whatsapp' => 'nullable|string|max:50',
+                'facebook' => 'nullable|url|max:255',
+                'instagram' => 'nullable|url|max:255',
+                'twitter' => 'nullable|url|max:255',
+                'tiktok' => 'nullable|url|max:255',
+                'snapchat' => 'nullable|string|max:100',
+            ]);
+
+            // Handle logo upload
+            if ($request->hasFile('logo')) {
+                $logo = $request->file('logo');
+                $logoPath = $logo->store('logos/' . $tenant->id, 'public');
+                $data['logo'] = $logoPath;
+            }
+
+            $settings = \App\Models\Setting::updateOrCreate(
+                ['tenant_id' => $tenant->id],
+                $data
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => __('Settings saved successfully!'),
+                'data' => $settings
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error saving settings: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**

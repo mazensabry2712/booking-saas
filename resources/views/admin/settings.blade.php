@@ -6,508 +6,278 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ __('Settings') }} - {{ tenant()->name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        [dir="rtl"] input, [dir="rtl"] textarea {
+            text-align: right;
+        }
+        [dir="rtl"] input[type="url"], [dir="rtl"] input[type="email"], [dir="rtl"] input[type="tel"] {
+            text-align: left;
+            direction: ltr;
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }}">
     @include('partials.admin-nav')
 
     <!-- Page Header -->
     <header class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }}">
             <h2 class="text-2xl font-bold text-gray-900">{{ __('Settings') }}</h2>
+            <p class="text-gray-600 mt-1">{{ __('Manage your business information and social media links') }}</p>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <!-- Tabs -->
-        <div class="mb-6 border-b border-gray-200">
-            <nav class="-mb-px flex {{ app()->getLocale() === 'ar' ? 'space-x-8 space-x-reverse' : 'space-x-8' }}">
-                <button onclick="showTab('services')" id="tab-services" class="tab-btn border-b-2 border-blue-500 py-4 px-1 text-sm font-medium text-blue-600">
-                    {{ __('Services') }}
-                </button>
-                <button onclick="showTab('timeslots')" id="tab-timeslots" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                    {{ __('Time Slots') }}
-                </button>
-                <button onclick="showTab('workingdays')" id="tab-workingdays" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                    {{ __('Working Days') }}
-                </button>
-                <button onclick="showTab('staffservices')" id="tab-staffservices" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                    {{ __('Staff Services') }}
-                </button>
-            </nav>
+    <main class="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Success/Error Messages -->
+        @if(session('success'))
+        <div class="mb-6 bg-green-50 border border-green-200 text-green-800 rounded-lg p-4">
+            {{ session('success') }}
         </div>
+        @endif
 
-        <!-- Services Tab -->
-        <div id="content-services" class="tab-content">
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="mb-6 flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-gray-900">{{ __('Services List') }}</h3>
-                    <button onclick="openServiceModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        {{ __('Add New Service') }}
-                    </button>
-                </div>
+        @if(session('error'))
+        <div class="mb-6 bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
+            {{ session('error') }}
+        </div>
+        @endif
 
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">#</th>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">{{ __('Name') }}</th>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">{{ __('Name (Arabic)') }}</th>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">{{ __('Duration') }}</th>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">{{ __('Price') }}</th>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">{{ __('Status') }}</th>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">{{ __('Actions') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody id="servicesTableBody" class="bg-white divide-y divide-gray-200">
-                            @forelse($services as $service)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $service->id }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $service->name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $service->name_ar ?? '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $service->duration }} {{ __('min') }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $service->price ?? '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $service->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                        {{ $service->is_active ? __('Active') : __('Inactive') }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <button onclick="editService({{ $service->id }})" class="text-blue-600 hover:text-blue-900 {{ app()->getLocale() === 'ar' ? 'ml-3' : 'mr-3' }}">{{ __('Edit') }}</button>
-                                    <button onclick="deleteService({{ $service->id }})" class="text-red-600 hover:text-red-900">{{ __('Delete') }}</button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="7" class="px-6 py-4 text-center text-gray-500">{{ __('No services found') }}</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+        <form id="settingsForm" enctype="multipart/form-data" class="space-y-6">
+            @csrf
+
+            <!-- Business Information -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2 {{ app()->getLocale() === 'ar' ? 'flex-row-reverse justify-end' : '' }}">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    {{ __('Business Information') }}
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Business Name -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Business Name') }}</label>
+                        <input type="text" name="business_name" value="{{ $settings['business_name'] ?? tenant()->name }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="{{ __('Enter business name') }}">
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Phone Number') }}</label>
+                        <input type="tel" name="phone" value="{{ $settings['phone'] ?? '' }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="+966 5xxxxxxxx">
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Email') }}</label>
+                        <input type="email" name="email" value="{{ $settings['email'] ?? '' }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="contact@example.com">
+                    </div>
+
+                    <!-- Address -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Address') }}</label>
+                        <input type="text" name="address" value="{{ $settings['address'] ?? '' }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="{{ __('Enter your business address') }}">
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Time Slots Tab -->
-        <div id="content-timeslots" class="tab-content hidden">
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="mb-6 flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-gray-900">{{ __('Time Slots List') }}</h3>
-                    <button onclick="openTimeSlotModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        {{ __('Add New Time Slot') }}
-                    </button>
-                </div>
+            <!-- Logo -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2 {{ app()->getLocale() === 'ar' ? 'flex-row-reverse justify-end' : '' }}">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    {{ __('Logo') }}
+                </h3>
 
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">#</th>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">{{ __('Start Time') }}</th>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">{{ __('End Time') }}</th>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">{{ __('Status') }}</th>
-                                <th class="px-6 py-3 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase">{{ __('Actions') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @forelse($timeSlots as $slot)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $slot->id }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ date('h:i A', strtotime($slot->start_time)) }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ date('h:i A', strtotime($slot->end_time)) }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $slot->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                        {{ $slot->is_active ? __('Active') : __('Inactive') }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <button onclick="toggleTimeSlot({{ $slot->id }}, {{ $slot->is_active ? 'false' : 'true' }})" class="text-blue-600 hover:text-blue-900 {{ app()->getLocale() === 'ar' ? 'ml-3' : 'mr-3' }}">
-                                        {{ $slot->is_active ? __('Deactivate') : __('Activate') }}
-                                    </button>
-                                    <button onclick="deleteTimeSlot({{ $slot->id }})" class="text-red-600 hover:text-red-900">{{ __('Delete') }}</button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">{{ __('No time slots found') }}</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Working Days Tab -->
-        <div id="content-workingdays" class="tab-content hidden">
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900">{{ __('Working Days') }}</h3>
-                    <p class="text-sm text-gray-500 mt-1">{{ __('Select the days your business is open') }}</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @foreach($workingDays as $day)
-                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <p class="font-medium text-gray-900">{{ app()->getLocale() === 'ar' ? $day->day_name_ar : $day->day_name }}</p>
+                <div class="flex items-center gap-6 {{ app()->getLocale() === 'ar' ? 'flex-row-reverse' : '' }}">
+                    <!-- Current Logo Preview -->
+                    <div class="flex-shrink-0">
+                        <div id="logoPreview" class="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
+                            @if(!empty($settings['logo']))
+                                <img src="{{ asset('storage/' . $settings['logo']) }}" alt="Logo" class="w-full h-full object-contain">
+                            @else
+                                <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            @endif
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" class="sr-only peer" {{ $day->is_active ? 'checked' : '' }}
-                                   onchange="toggleWorkingDay({{ $day->id }}, this.checked)">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] {{ app()->getLocale() === 'ar' ? 'after:right-[2px] peer-checked:after:-translate-x-full' : 'after:left-[2px]' }} after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
                     </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
 
-        <!-- Staff Services Tab -->
-        <div id="content-staffservices" class="tab-content hidden">
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900">{{ __('Assign Services to Staff') }}</h3>
-                    <p class="text-sm text-gray-500 mt-1">{{ __('Select which services each staff member can provide') }}</p>
-                </div>
-
-                @forelse($staffMembers as $staff)
-                <div class="mb-6 p-4 border border-gray-200 rounded-lg">
-                    <h4 class="font-medium text-gray-900 mb-3">{{ $staff->name }}</h4>
-                    <div class="flex flex-wrap gap-3">
-                        @foreach($services as $service)
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600 rounded"
-                                   {{ $staff->services->contains($service->id) ? 'checked' : '' }}
-                                   onchange="toggleStaffService({{ $staff->id }}, {{ $service->id }}, this.checked)">
-                            <span class="ml-2 text-gray-700">{{ app()->getLocale() === 'ar' && $service->name_ar ? $service->name_ar : $service->name }}</span>
-                        </label>
-                        @endforeach
+                    <div class="flex-1 {{ app()->getLocale() === 'ar' ? 'text-right' : 'text-left' }}">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Upload Logo') }}</label>
+                        <input type="file" name="logo" id="logoInput" accept="image/*"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            onchange="previewLogo(this)">
+                        <p class="text-xs text-gray-500 mt-1">{{ __('Recommended size: 200x200 pixels. Max 2MB.') }}</p>
                     </div>
                 </div>
-                @empty
-                <p class="text-gray-500 text-center py-4">{{ __('No staff members found') }}</p>
-                @endforelse
             </div>
-        </div>
+
+            <!-- Social Media Links -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2 {{ app()->getLocale() === 'ar' ? 'flex-row-reverse justify-end' : '' }}">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                    </svg>
+                    {{ __('Social Media') }}
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- WhatsApp -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 {{ app()->getLocale() === 'ar' ? 'flex-row-reverse justify-end' : '' }}">
+                            <svg class="w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                            </svg>
+                            {{ __('WhatsApp') }}
+                        </label>
+                        <input type="text" name="whatsapp" value="{{ $settings['whatsapp'] ?? '' }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="+966 5xxxxxxxx" dir="ltr">
+                    </div>
+
+                    <!-- Facebook -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 {{ app()->getLocale() === 'ar' ? 'flex-row-reverse justify-end' : '' }}">
+                            <svg class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                            {{ __('Facebook') }}
+                        </label>
+                        <input type="url" name="facebook" value="{{ $settings['facebook'] ?? '' }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="https://facebook.com/yourpage" dir="ltr">
+                    </div>
+
+                    <!-- Instagram -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 {{ app()->getLocale() === 'ar' ? 'flex-row-reverse justify-end' : '' }}">
+                            <svg class="w-5 h-5 text-pink-500" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                            </svg>
+                            {{ __('Instagram') }}
+                        </label>
+                        <input type="url" name="instagram" value="{{ $settings['instagram'] ?? '' }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="https://instagram.com/yourpage" dir="ltr">
+                    </div>
+
+                    <!-- Twitter/X -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 {{ app()->getLocale() === 'ar' ? 'flex-row-reverse justify-end' : '' }}">
+                            <svg class="w-5 h-5 text-gray-900" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                            {{ __('Twitter/X') }}
+                        </label>
+                        <input type="url" name="twitter" value="{{ $settings['twitter'] ?? '' }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="https://x.com/yourpage" dir="ltr">
+                    </div>
+
+                    <!-- TikTok -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 {{ app()->getLocale() === 'ar' ? 'flex-row-reverse justify-end' : '' }}">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                            </svg>
+                            {{ __('TikTok') }}
+                        </label>
+                        <input type="url" name="tiktok" value="{{ $settings['tiktok'] ?? '' }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="https://tiktok.com/@yourpage" dir="ltr">
+                    </div>
+
+                    <!-- Snapchat -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 {{ app()->getLocale() === 'ar' ? 'flex-row-reverse justify-end' : '' }}">
+                            <svg class="w-5 h-5 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/>
+                            </svg>
+                            {{ __('Snapchat') }}
+                        </label>
+                        <input type="text" name="snapchat" value="{{ $settings['snapchat'] ?? '' }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="{{ __('Snapchat username') }}" dir="ltr">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="flex {{ app()->getLocale() === 'ar' ? 'justify-start' : 'justify-end' }} gap-4">
+                <button type="submit" id="saveBtn" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    {{ __('Save Settings') }}
+                </button>
+            </div>
+        </form>
     </main>
-
-    <!-- Service Modal -->
-    <div id="serviceModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-lg bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="serviceModalTitle" class="text-xl font-bold text-gray-900">{{ __('Add New Service') }}</h3>
-                <button onclick="closeServiceModal()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-
-            <form id="serviceForm" class="space-y-4">
-                <input type="hidden" id="service_id" name="id">
-                @csrf
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Service Name (English)') }}</label>
-                    <input type="text" id="service_name" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Service Name (Arabic)') }}</label>
-                    <input type="text" id="service_name_ar" name="name_ar" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Duration (minutes)') }}</label>
-                    <input type="number" id="service_duration" name="duration" value="30" min="5" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Price') }}</label>
-                    <input type="number" id="service_price" name="price" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Description') }}</label>
-                    <textarea id="service_description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                </div>
-
-                <div class="flex items-center">
-                    <input type="checkbox" id="service_is_active" name="is_active" checked class="h-4 w-4 text-blue-600 rounded">
-                    <label class="ml-2 text-sm text-gray-700">{{ __('Active') }}</label>
-                </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        {{ __('Save') }}
-                    </button>
-                    <button type="button" onclick="closeServiceModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
-                        {{ __('Cancel') }}
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Time Slot Modal -->
-    <div id="timeSlotModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-lg bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-900">{{ __('Add New Time Slot') }}</h3>
-                <button onclick="closeTimeSlotModal()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-
-            <form id="timeSlotForm" class="space-y-4">
-                @csrf
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Start Time') }}</label>
-                    <input type="time" id="slot_start_time" name="start_time" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('End Time') }}</label>
-                    <input type="time" id="slot_end_time" name="end_time" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        {{ __('Save') }}
-                    </button>
-                    <button type="button" onclick="closeTimeSlotModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
-                        {{ __('Cancel') }}
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-        // Tab switching
-        function showTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('border-blue-500', 'text-blue-600');
-                el.classList.add('border-transparent', 'text-gray-500');
-            });
-
-            document.getElementById('content-' + tab).classList.remove('hidden');
-            document.getElementById('tab-' + tab).classList.remove('border-transparent', 'text-gray-500');
-            document.getElementById('tab-' + tab).classList.add('border-blue-500', 'text-blue-600');
-        }
-
-        // Service Modal
-        function openServiceModal() {
-            document.getElementById('serviceModal').classList.remove('hidden');
-            document.getElementById('serviceModalTitle').textContent = '{{ __("Add New Service") }}';
-            document.getElementById('serviceForm').reset();
-            document.getElementById('service_id').value = '';
-            document.getElementById('service_is_active').checked = true;
-        }
-
-        function closeServiceModal() {
-            document.getElementById('serviceModal').classList.add('hidden');
-        }
-
-        async function editService(id) {
-            try {
-                const response = await fetch(`/admin/api/settings/services/${id}`);
-                const result = await response.json();
-
-                if (result.success) {
-                    const service = result.data;
-                    document.getElementById('service_id').value = service.id;
-                    document.getElementById('service_name').value = service.name;
-                    document.getElementById('service_name_ar').value = service.name_ar || '';
-                    document.getElementById('service_duration').value = service.duration;
-                    document.getElementById('service_price').value = service.price || '';
-                    document.getElementById('service_description').value = service.description || '';
-                    document.getElementById('service_is_active').checked = service.is_active;
-                    document.getElementById('serviceModalTitle').textContent = '{{ __("Edit Service") }}';
-                    document.getElementById('serviceModal').classList.remove('hidden');
-                }
-            } catch (error) {
-                alert('{{ __("Error loading data") }}');
+        // Preview logo before upload
+        function previewLogo(input) {
+            const preview = document.getElementById('logoPreview');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Logo Preview" class="w-full h-full object-contain">`;
+                };
+                reader.readAsDataURL(input.files[0]);
             }
         }
 
-        document.getElementById('serviceForm').addEventListener('submit', async (e) => {
+        // Handle form submit
+        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData);
-            data.is_active = document.getElementById('service_is_active').checked;
 
-            const url = data.id ? `/admin/api/settings/services/${data.id}` : '/admin/api/settings/services';
-            const method = data.id ? 'PUT' : 'POST';
+            const btn = document.getElementById('saveBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> {{ __("Saving...") }}';
+            btn.disabled = true;
 
             try {
-                const response = await fetch(url, {
-                    method: method,
+                const formData = new FormData(e.target);
+
+                const response = await fetch('/admin/api/settings', {
+                    method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken
                     },
-                    body: JSON.stringify(data)
+                    body: formData
                 });
 
                 const result = await response.json();
+
                 if (result.success) {
-                    window.location.reload();
+                    // Show success message
+                    const alert = document.createElement('div');
+                    alert.className = 'fixed top-4 {{ app()->getLocale() === "ar" ? "left-4" : "right-4" }} bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                    alert.innerHTML = '✓ {{ __("Settings saved successfully!") }}';
+                    document.body.appendChild(alert);
+                    setTimeout(() => alert.remove(), 3000);
                 } else {
                     alert(result.message || '{{ __("Error occurred") }}');
                 }
             } catch (error) {
                 alert('{{ __("Error occurred") }}');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         });
-
-        async function deleteService(id) {
-            if (!confirm('{{ __("Are you sure you want to delete this service?") }}')) return;
-
-            try {
-                const response = await fetch(`/admin/api/settings/services/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': csrfToken }
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    window.location.reload();
-                } else {
-                    alert(result.message || '{{ __("Error occurred") }}');
-                }
-            } catch (error) {
-                alert('{{ __("Error occurred") }}');
-            }
-        }
-
-        // Time Slot Modal
-        function openTimeSlotModal() {
-            document.getElementById('timeSlotModal').classList.remove('hidden');
-            document.getElementById('timeSlotForm').reset();
-        }
-
-        function closeTimeSlotModal() {
-            document.getElementById('timeSlotModal').classList.add('hidden');
-        }
-
-        document.getElementById('timeSlotForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData);
-
-            try {
-                const response = await fetch('/admin/api/settings/timeslots', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    window.location.reload();
-                } else {
-                    alert(result.message || '{{ __("Error occurred") }}');
-                }
-            } catch (error) {
-                alert('{{ __("Error occurred") }}');
-            }
-        });
-
-        async function toggleTimeSlot(id, isActive) {
-            try {
-                const response = await fetch(`/admin/api/settings/timeslots/${id}/toggle`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({ is_active: isActive })
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    window.location.reload();
-                }
-            } catch (error) {
-                alert('{{ __("Error occurred") }}');
-            }
-        }
-
-        async function deleteTimeSlot(id) {
-            if (!confirm('{{ __("Are you sure you want to delete this time slot?") }}')) return;
-
-            try {
-                const response = await fetch(`/admin/api/settings/timeslots/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': csrfToken }
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    window.location.reload();
-                }
-            } catch (error) {
-                alert('{{ __("Error occurred") }}');
-            }
-        }
-
-        // Working Days
-        async function toggleWorkingDay(id, isActive) {
-            try {
-                const response = await fetch(`/admin/api/settings/workingdays/${id}/toggle`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({ is_active: isActive })
-                });
-
-                const result = await response.json();
-                if (!result.success) {
-                    alert('{{ __("Error occurred") }}');
-                    window.location.reload();
-                }
-            } catch (error) {
-                alert('{{ __("Error occurred") }}');
-            }
-        }
-
-        // Staff Services
-        async function toggleStaffService(staffId, serviceId, isChecked) {
-            try {
-                const response = await fetch('/admin/api/settings/staff-services', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({
-                        staff_id: staffId,
-                        service_id: serviceId,
-                        attach: isChecked
-                    })
-                });
-
-                const result = await response.json();
-                if (!result.success) {
-                    alert('{{ __("Error occurred") }}');
-                    window.location.reload();
-                }
-            } catch (error) {
-                alert('{{ __("Error occurred") }}');
-            }
-        }
     </script>
 </body>
 </html>

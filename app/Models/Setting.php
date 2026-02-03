@@ -6,12 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
-    protected $primaryKey = 'tenant_id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
     protected $fillable = [
         'tenant_id',
+        'business_name',
+        'business_name_ar',
+        'phone',
+        'email',
+        'address',
+        'logo',
+        'whatsapp',
+        'facebook',
+        'instagram',
+        'twitter',
+        'tiktok',
+        'snapchat',
         'working_hours',
         'notification_settings',
         'language',

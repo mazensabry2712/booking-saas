@@ -137,6 +137,9 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff|A
         // Settings - Staff Services
         Route::post('/settings/staff-services', [AdminController::class, 'toggleStaffService'])->name('api.settings.staffservices');
 
+        // Business Settings
+        Route::post('/settings', [AdminController::class, 'saveSettings'])->name('api.settings.save');
+
         // Assistants Management (Admin Only)
         Route::get('/assistants', [AssistantController::class, 'index'])->name('api.assistants.index');
         Route::get('/assistants/{id}', [AssistantController::class, 'show'])->name('api.assistants.show');

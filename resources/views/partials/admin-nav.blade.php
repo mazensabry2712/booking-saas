@@ -1,5 +1,7 @@
 @php
     $isArabic = app()->getLocale() === 'ar';
+    $businessSettings = \App\Models\Setting::where('tenant_id', tenant()->id)->first();
+    $businessName = $businessSettings->business_name ?? tenant()->name ?? config('app.name');
 @endphp
 <!-- Top Navigation Bar -->
 <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
@@ -8,7 +10,7 @@
             <!-- Logo & Navigation Links -->
             <div class="flex items-center gap-1">
                 <a href="/admin/dashboard" class="text-xl font-bold text-blue-600 {{ $isArabic ? 'ml-6' : 'mr-6' }}">
-                    {{ tenant()->name ?? config('app.name') }}
+                    {{ $businessName }}
                 </a>
 
                 <div class="hidden md:flex items-center">
