@@ -4,8 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    <title>{{ __('Queue Dashboard') }} - {{ tenant()->name }}</title>
+    @php
+        $businessSettings = \App\Models\Setting::where('tenant_id', tenant()->id)->first();
+        $businessName = $businessSettings->business_name ?? tenant()->name ?? config('app.name');
+    @endphp
+    <title>{{ __('Queue Dashboard') }} - {{ $businessName }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -39,7 +42,7 @@
 
             <div class="text-center">
                 <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-1 sm:mb-2">{{ __('Queue Dashboard') }}</h1>
-                <p class="text-sm sm:text-base text-gray-600">{{ tenant()->name }}</p>
+                <p class="text-sm sm:text-base text-gray-600">{{ $businessName }}</p>
                 <p class="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{{ __('Updates automatically every 10 seconds') }}</p>
             </div>
         </div>

@@ -4,8 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    <title>{{ __('Book Appointment') }} - {{ tenant()->name }}</title>
+    @php
+        $businessSettings = \App\Models\Setting::where('tenant_id', tenant()->id)->first();
+        $businessName = $businessSettings->business_name ?? tenant()->name ?? config('app.name');
+    @endphp
+    <title>{{ __('Book Appointment') }} - {{ $businessName }}</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -28,7 +31,7 @@
             </div>
 
             <div class="text-center">
-                <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-1 sm:mb-2">{{ tenant()->name }}</h1>
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-1 sm:mb-2">{{ $businessName }}</h1>
                 <p class="text-sm sm:text-base text-gray-600">{{ __('Book your appointment online') }}</p>
             </div>
         </div>
