@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\QueueController;
 use App\Http\Controllers\Web\AdminController;
+use App\Http\Controllers\Web\ProfileController;
+use App\Http\Controllers\Web\AssistantController;
 
 /*
 |--------------------------------------------------------------------------
@@ -64,10 +66,18 @@ Route::middleware(['tenant', 'tenant.locale'])->group(function () {
 });
 
 // Admin Routes (Protected)
-Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff|Assistant'])->prefix('admin')->name('admin.')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+
+    // Profile Management
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
+    Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::delete('/profile', [ProfileController::class, 'deleteAccount'])->name('profile.delete');
 
     // Appointments Management
     Route::get('/appointments', [AdminController::class, 'appointments'])->name('appointments');
@@ -78,6 +88,14 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff']
     // Settings Page
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
 
+    // Assistants Page (Admin Only)
+    Route::get('/assistants', function () {
+        if (!auth()->user()->isAdminTenant()) {
+            abort(403);
+        }
+        return view('admin.assistants');
+    })->name('assistants');
+
     // API endpoints for AJAX (inside admin context)
     Route::prefix('api')->group(function () {
         // Appointments
@@ -86,6 +104,7 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff']
         Route::put('/appointments/{id}', [AdminController::class, 'updateAppointment'])->name('api.appointments.update');
         Route::delete('/appointments/{id}', [AdminController::class, 'destroyAppointment'])->name('api.appointments.destroy');
         Route::patch('/appointments/{id}/status', [AdminController::class, 'quickStatusUpdate'])->name('api.appointments.status');
+        Route::get('/appointments/export-excel', [AdminController::class, 'exportAppointmentsExcel'])->name('api.appointments.export');
 
         // Staff Management
         Route::get('/staff/{id}', [AdminController::class, 'showStaff'])->name('api.staff.show');
@@ -117,6 +136,13 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff']
 
         // Settings - Staff Services
         Route::post('/settings/staff-services', [AdminController::class, 'toggleStaffService'])->name('api.settings.staffservices');
+
+        // Assistants Management (Admin Only)
+        Route::get('/assistants', [AssistantController::class, 'index'])->name('api.assistants.index');
+        Route::get('/assistants/{id}', [AssistantController::class, 'show'])->name('api.assistants.show');
+        Route::post('/assistants', [AssistantController::class, 'store'])->name('api.assistants.store');
+        Route::put('/assistants/{id}', [AssistantController::class, 'update'])->name('api.assistants.update');
+        Route::delete('/assistants/{id}', [AssistantController::class, 'destroy'])->name('api.assistants.destroy');
     });
 
     // Public API for dropdowns

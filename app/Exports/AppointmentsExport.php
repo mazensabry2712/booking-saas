@@ -31,31 +31,30 @@ class AppointmentsExport implements FromQuery, WithHeadings, WithMapping, WithSt
     public function query()
     {
         $query = Appointment::query()
-            ->where('tenant_id', $this->tenant->id)
             ->with(['customer', 'staff']);
 
         // Apply date filters
         if ($this->startDate && $this->endDate) {
-            $query->whereBetween('appointment_date', [$this->startDate, $this->endDate]);
+            $query->whereBetween('date', [$this->startDate, $this->endDate]);
         } else {
             switch ($this->period) {
                 case 'today':
-                    $query->whereDate('appointment_date', now());
+                    $query->whereDate('date', now());
                     break;
                 case 'week':
-                    $query->whereBetween('appointment_date', [
+                    $query->whereBetween('date', [
                         now()->startOfWeek(),
                         now()->endOfWeek()
                     ]);
                     break;
                 case 'month':
-                    $query->whereMonth('appointment_date', now()->month)
-                        ->whereYear('appointment_date', now()->year);
+                    $query->whereMonth('date', now()->month)
+                        ->whereYear('date', now()->year);
                     break;
             }
         }
 
-        return $query->orderBy('appointment_date');
+        return $query->orderBy('date');
     }
 
     /**
@@ -65,15 +64,16 @@ class AppointmentsExport implements FromQuery, WithHeadings, WithMapping, WithSt
     {
         return [
             'ID',
-            'Customer Name',
-            'Customer Email',
-            'Staff Name',
-            'Appointment Date',
-            'Appointment Time',
-            'Status',
-            'Priority',
-            'Notes',
-            'Created At',
+            'اسم العميل / Customer Name',
+            'البريد الإلكتروني / Email',
+            'الهاتف / Phone',
+            'الموظف / Staff',
+            'التاريخ / Date',
+            'الوقت / Time',
+            'نوع الخدمة / Service',
+            'الحالة / Status',
+            'ملاحظات / Notes',
+            'تاريخ الإنشاء / Created At',
         ];
     }
 
@@ -86,13 +86,14 @@ class AppointmentsExport implements FromQuery, WithHeadings, WithMapping, WithSt
             $appointment->id,
             $appointment->customer->name ?? 'N/A',
             $appointment->customer->email ?? 'N/A',
+            $appointment->customer->phone ?? 'N/A',
             $appointment->staff->name ?? 'N/A',
-            $appointment->appointment_date->format('Y-m-d'),
-            $appointment->appointment_date->format('H:i'),
-            $appointment->status,
-            $appointment->priority ?? 'Normal',
+            $appointment->date ? $appointment->date->format('Y-m-d') : 'N/A',
+            $appointment->time_slot ?? 'N/A',
+            $appointment->service_type ?? 'N/A',
+            $appointment->status ?? 'N/A',
             $appointment->notes ?? '',
-            $appointment->created_at->format('Y-m-d H:i'),
+            $appointment->created_at ? $appointment->created_at->format('Y-m-d H:i') : 'N/A',
         ];
     }
 

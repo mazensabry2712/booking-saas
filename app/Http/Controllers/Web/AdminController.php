@@ -68,14 +68,19 @@ class AdminController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Service filter
-        if ($request->filled('service_type')) {
-            $query->where('service_type', $request->service_type);
-        }
-
         // Staff filter
         if ($request->filled('staff_id')) {
             $query->where('staff_id', $request->staff_id);
+        }
+
+        // Service name filter (from Services table - Nutrition, beauty, etc.)
+        if ($request->filled('service_name')) {
+            $query->where('service_type', 'like', '%' . $request->service_name . '%');
+        }
+
+        // Service type filter (consultation, examination, follow-up, etc.)
+        if ($request->filled('service_type')) {
+            $query->where('service_type', $request->service_type);
         }
 
         // Search
@@ -117,14 +122,20 @@ class AdminController extends Controller
                 ->count(),
         ];
 
-        // Get services from Services table for filter dropdown
+        // Get services from Services table (Nutrition, beauty, etc.)
         $services = Service::where('is_active', true)->get();
+
+        // Get distinct service types from appointments (استشارة، كشف، متابعة، etc.)
+        $serviceTypes = Appointment::whereNotNull('service_type')
+            ->where('service_type', '!=', '')
+            ->distinct()
+            ->pluck('service_type');
 
         // Get staff for filters
         $staffRole = Role::whereIn('name', ['Staff', 'Admin Tenant'])->pluck('id');
         $staffMembers = User::whereIn('role_id', $staffRole)->get();
 
-        return view('admin.appointments', compact('appointments', 'stats', 'services', 'staffMembers'));
+        return view('admin.appointments', compact('appointments', 'stats', 'services', 'serviceTypes', 'staffMembers'));
     }
 
     /**
@@ -410,6 +421,24 @@ class AdminController extends Controller
                 'message' => 'حدث خطأ أثناء الحذف'
             ], 500);
         }
+    }
+
+    /**
+     * Export appointments to Excel
+     */
+    public function exportAppointmentsExcel(Request $request)
+    {
+        $period = $request->get('period', $request->get('date_filter', 'month'));
+        $startDate = $request->get('start_date', $request->get('date_from'));
+        $endDate = $request->get('end_date', $request->get('date_to'));
+
+        $tenant = tenant();
+        $fileName = 'appointments-' . $period . '-' . now()->format('Y-m-d') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\AppointmentsExport($tenant, $period, $startDate, $endDate),
+            $fileName
+        );
     }
 
     /**

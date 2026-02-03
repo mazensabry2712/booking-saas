@@ -20,39 +20,7 @@
     </style>
 </head>
 <body class="bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center gap-4">
-                    <a href="/admin/dashboard" class="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100">
-                        <svg class="w-5 h-5 {{ $isArabic ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                    </a>
-                    <h1 class="text-xl font-bold text-gray-900">{{ tenant()->name }}</h1>
-                </div>
-                <div class="flex items-center gap-4">
-                    <!-- Language Switcher -->
-                    <div class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-                        <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->query(), ['lang' => 'ar'])) }}"
-                           class="px-3 py-1 text-xs font-medium rounded-md {{ $isArabic ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-gray-900' }}">
-                            عربي
-                        </a>
-                        <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->query(), ['lang' => 'en'])) }}"
-                           class="px-3 py-1 text-xs font-medium rounded-md {{ !$isArabic ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-gray-900' }}">
-                            EN
-                        </a>
-                    </div>
-                    <span class="text-gray-700 text-sm">{{ auth()->user()->name }}</span>
-                    <form action="{{ route('logout') }}" method="POST" class="inline">
-                        @csrf
-                        <button type="submit" class="text-red-600 hover:text-red-800 text-sm">{{ $isArabic ? 'خروج' : 'Logout' }}</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </nav>
+    @include('partials.admin-nav')
 
     <!-- Page Header -->
     <header class="bg-white border-b">
@@ -160,9 +128,10 @@
         <!-- Filters -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
             <form method="GET" action="{{ route('admin.appointments') }}" id="filterForm">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                <!-- Row 1: Search, Period, Status -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                     <!-- Search -->
-                    <div class="lg:col-span-2">
+                    <div>
                         <label class="block text-xs font-medium text-gray-500 mb-1">{{ $isArabic ? 'بحث' : 'Search' }}</label>
                         <div class="relative">
                             <input type="text" name="search" value="{{ request('search') }}"
@@ -198,18 +167,50 @@
                         </select>
                     </div>
 
-                    <!-- Service Filter -->
+                    <!-- Staff Filter -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">{{ $isArabic ? 'الموظف' : 'Staff' }}</label>
+                        <select name="staff_id" id="staff_filter" class="filter-input w-full" onchange="loadStaffServices(this.value)">
+                            <option value="">{{ $isArabic ? 'الكل' : 'All' }}</option>
+                            @foreach($staffMembers ?? [] as $staff)
+                                <option value="{{ $staff->id }}" {{ request('staff_id') == $staff->id ? 'selected' : '' }}>
+                                    {{ $staff->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 2: Service, Service Type, Actions -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Service Filter (from Services table) -->
                     <div>
                         <label class="block text-xs font-medium text-gray-500 mb-1">{{ $isArabic ? 'الخدمة' : 'Service' }}</label>
-                        <select name="service_type" class="filter-input w-full">
+                        <select name="service_name" id="service_filter" class="filter-input w-full">
                             <option value="">{{ $isArabic ? 'الكل' : 'All' }}</option>
                             @foreach($services ?? [] as $service)
-                                <option value="{{ $service->name }}" {{ request('service_type') == $service->name ? 'selected' : '' }}>
+                                <option value="{{ $service->name }}" {{ request('service_name') == $service->name ? 'selected' : '' }}>
                                     {{ $isArabic && $service->name_ar ? $service->name_ar : $service->name }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
+
+                    <!-- Service Type Filter (consultation, examination, etc.) -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">{{ $isArabic ? 'نوع الخدمة' : 'Service Type' }}</label>
+                        <select name="service_type" class="filter-input w-full">
+                            <option value="">{{ $isArabic ? 'الكل' : 'All' }}</option>
+                            @foreach($serviceTypes ?? [] as $type)
+                                <option value="{{ $type }}" {{ request('service_type') == $type ? 'selected' : '' }}>
+                                    {{ $type }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Empty space for alignment -->
+                    <div></div>
 
                     <!-- Actions -->
                     <div class="flex items-end gap-2">
@@ -245,13 +246,13 @@
                     <span class="text-sm font-normal text-gray-500">({{ $appointments->total() }})</span>
                 </h3>
                 <div class="flex gap-2">
-                    <button onclick="exportData('pdf')" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
+                    <button onclick="printAppointments()" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                         </svg>
-                        PDF
+                        {{ $isArabic ? 'طباعة' : 'Print' }}
                     </button>
-                    <button onclick="exportData('csv')" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-green-50 text-green-600 rounded-lg hover:bg-green-100">
+                    <button onclick="exportExcel()" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-green-50 text-green-600 rounded-lg hover:bg-green-100">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
@@ -262,7 +263,7 @@
 
             @if($appointments->count() > 0)
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
+                    <table id="appointmentsTable" class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 {{ $isArabic ? 'text-right' : 'text-left' }} text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
@@ -565,6 +566,9 @@
         const isArabic = {{ $isArabic ? 'true' : 'false' }};
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
+        // All services data for filtering
+        const allServices = @json($services ?? []);
+
         const texts = {
             confirmDelete: isArabic ? 'هل أنت متأكد من حذف هذا الموعد؟' : 'Are you sure you want to delete this appointment?',
             deleted: isArabic ? 'تم الحذف بنجاح' : 'Deleted successfully',
@@ -575,8 +579,39 @@
             pending: isArabic ? 'قيد الانتظار' : 'Pending',
             confirmed: isArabic ? 'مؤكد' : 'Confirmed',
             completed: isArabic ? 'مكتمل' : 'Completed',
-            cancelled: isArabic ? 'ملغي' : 'Cancelled'
+            cancelled: isArabic ? 'ملغي' : 'Cancelled',
+            all: isArabic ? 'الكل' : 'All'
         };
+
+        // Load staff services when staff is selected
+        async function loadStaffServices(staffId) {
+            const serviceFilter = document.getElementById('service_filter');
+
+            if (!staffId) {
+                // Reset to all services
+                serviceFilter.innerHTML = `<option value="">${texts.all}</option>`;
+                allServices.forEach(service => {
+                    const name = isArabic && service.name_ar ? service.name_ar : service.name;
+                    serviceFilter.innerHTML += `<option value="${service.name}">${name}</option>`;
+                });
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/booking/staff/${staffId}/services`);
+                const result = await response.json();
+
+                if (result.success) {
+                    serviceFilter.innerHTML = `<option value="">${texts.all}</option>`;
+                    result.data.forEach(service => {
+                        const name = isArabic && service.name_ar ? service.name_ar : service.name;
+                        serviceFilter.innerHTML += `<option value="${service.name}">${name}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading staff services:', error);
+            }
+        }
 
         // Toggle custom date range
         function toggleCustomDate(select) {
@@ -898,14 +933,61 @@
             }
         }
 
-        // Export data
-        function exportData(type) {
+        // Print appointments
+        function printAppointments() {
+            const printContent = document.getElementById('appointmentsTable');
+            const printWindow = window.open('', '_blank');
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html dir="${isArabic ? 'rtl' : 'ltr'}">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${isArabic ? 'طباعة المواعيد' : 'Print Appointments'}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        h1 { text-align: center; margin-bottom: 20px; font-size: 24px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        th, td { border: 1px solid #ddd; padding: 10px; text-align: ${isArabic ? 'right' : 'left'}; font-size: 12px; }
+                        th { background-color: #f3f4f6; font-weight: bold; }
+                        tr:nth-child(even) { background-color: #f9fafb; }
+                        .status-pending { color: #92400e; background: #fef3c7; padding: 2px 8px; border-radius: 12px; }
+                        .status-confirmed { color: #166534; background: #dcfce7; padding: 2px 8px; border-radius: 12px; }
+                        .status-cancelled { color: #991b1b; background: #fee2e2; padding: 2px 8px; border-radius: 12px; }
+                        .status-completed { color: #1e40af; background: #dbeafe; padding: 2px 8px; border-radius: 12px; }
+                        .print-header { text-align: center; margin-bottom: 30px; }
+                        .print-date { color: #666; font-size: 12px; }
+                        @media print {
+                            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">
+                        <h1>{{ tenant()->name }}</h1>
+                        <p>${isArabic ? 'قائمة المواعيد' : 'Appointments List'}</p>
+                        <p class="print-date">${isArabic ? 'تاريخ الطباعة:' : 'Print Date:'} ${new Date().toLocaleDateString('${isArabic ? 'ar-EG' : 'en-US'}')}</p>
+                    </div>
+                    ${printContent.outerHTML}
+                </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+            printWindow.onload = function() {
+                printWindow.print();
+            };
+        }
+
+        // Export to Excel
+        function exportExcel() {
             const params = new URLSearchParams(window.location.search);
-            if (type === 'pdf') {
-                window.open(`/api/reports/appointments/export-pdf?${params}`, '_blank');
-            } else {
-                window.open(`/api/reports/appointments/export-csv?${params}`, '_blank');
+            // Add date filter if set
+            const dateFilter = document.querySelector('select[name="date_filter"]')?.value;
+            if (dateFilter) {
+                params.set('period', dateFilter);
             }
+            window.location.href = `/admin/api/appointments/export-excel?${params}`;
         }
 
         // Toast notification

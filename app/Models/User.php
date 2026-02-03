@@ -25,6 +25,8 @@ class User extends Authenticatable
         'phone',
         'password',
         'is_vip',
+        'avatar',
+        'permissions',
     ];
 
     /**
@@ -47,7 +49,63 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'permissions' => 'array',
         ];
+    }
+
+    /**
+     * Get the avatar URL
+     */
+    public function getAvatarUrlAttribute(): string
+    {
+        if ($this->avatar) {
+            // Check if image exists in new structure
+            $image = \App\Models\Image::where('filename', $this->avatar)->first();
+            if ($image) {
+                return $image->url;
+            }
+            // Fallback to direct path in project_img/avatars
+            return asset('project_img/avatars/' . $this->avatar);
+        }
+        return '';
+    }
+
+    /**
+     * Get user's avatar image model
+     */
+    public function avatarImage()
+    {
+        return $this->morphOne(Image::class, 'imageable')->where('folder', 'avatars');
+    }
+
+    /**
+     * Get all user's images
+     */
+    public function images()
+    {
+        return $this->morphMany(Image::class, 'imageable');
+    }
+
+    /**
+     * Check if user has specific permission
+     */
+    public function hasPermission(string $permission): bool
+    {
+        // Admin Tenant has all permissions
+        if ($this->isAdminTenant()) {
+            return true;
+        }
+
+        $permissions = $this->permissions ?? [];
+        return in_array($permission, $permissions);
+    }
+
+    /**
+     * Check if user is an Assistant
+     */
+    public function isAssistant(): bool
+    {
+        return $this->role && $this->role->name === 'Assistant';
     }
 
     // Relationships

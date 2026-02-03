@@ -8,39 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center {{ app()->getLocale() === 'ar' ? 'space-x-6 space-x-reverse' : 'space-x-6' }}">
-                    <a href="/admin/dashboard" class="text-gray-600 hover:text-gray-900">
-                        <svg class="w-6 h-6 {{ app()->getLocale() === 'ar' ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                    </a>
-                    <h1 class="text-xl font-bold text-gray-900">{{ tenant()->name }}</h1>
-                </div>
-                <div class="flex items-center {{ app()->getLocale() === 'ar' ? 'space-x-4 space-x-reverse' : 'space-x-4' }}">
-                    <!-- Language Switcher -->
-                    <div class="flex items-center {{ app()->getLocale() === 'ar' ? 'space-x-2 space-x-reverse' : 'space-x-2' }}">
-                        <a href="{{ url('/change-language/ar') }}"
-                           class="px-2 py-1 text-sm rounded {{ app()->getLocale() === 'ar' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-                            عربي
-                        </a>
-                        <a href="{{ url('/change-language/en') }}"
-                           class="px-2 py-1 text-sm rounded {{ app()->getLocale() === 'en' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-                            EN
-                        </a>
-                    </div>
-                    <span class="text-gray-700">{{ auth()->user()->name }}</span>
-                    <form action="{{ route('logout') }}" method="POST" class="inline">
-                        @csrf
-                        <button type="submit" class="text-red-600 hover:text-red-800">{{ __('Logout') }}</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </nav>
+    @include('partials.admin-nav')
 
     <!-- Page Header -->
     <header class="bg-white shadow-sm">

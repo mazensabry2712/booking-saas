@@ -64,6 +64,9 @@ class TenantAuthController extends Controller
                 case 'Admin Tenant':
                     $abilities = ['admin-tenant'];
                     break;
+                case 'Assistant':
+                    $abilities = ['assistant'];
+                    break;
                 case 'Staff':
                     $abilities = ['staff'];
                     break;

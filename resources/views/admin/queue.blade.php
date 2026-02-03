@@ -1,36 +1,14 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>إدارة قائمة الانتظار - {{ tenant()->name }}</title>
+    <title>{{ __('Manage Queue') }} - {{ tenant()->name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center space-x-6 space-x-reverse">
-                    <a href="/admin/dashboard" class="text-gray-600 hover:text-gray-900">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                    </a>
-                    <h1 class="text-xl font-bold text-gray-900">{{ tenant()->name }}</h1>
-                </div>
-                <div class="flex items-center space-x-4 space-x-reverse">
-                    <span class="text-gray-700">{{ auth()->user()->name }}</span>
-                    <span class="text-sm text-gray-500">Staff Member</span>
-                    <form action="{{ route('logout') }}" method="POST" class="inline">
-                        @csrf
-                        <button type="submit" class="text-red-600 hover:text-red-800">تسجيل خروج</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </nav>
+    @include('partials.admin-nav')
 
     <!-- Page Header -->
     <header class="bg-white shadow-sm">
