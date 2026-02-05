@@ -120,7 +120,10 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff|A
         // Queue Management
         Route::post('/queue/add', [AdminController::class, 'addToQueue'])->name('api.queue.add');
         Route::post('/queue/call-next', [AdminController::class, 'callNext'])->name('api.queue.callNext');
+        Route::get('/queue/{id}', [AdminController::class, 'getQueue'])->name('api.queue.show');
+        Route::put('/queue/{id}', [AdminController::class, 'updateQueue'])->name('api.queue.update');
         Route::post('/queue/{id}/serve', [AdminController::class, 'serveQueue'])->name('api.queue.serve');
+        Route::post('/queue/{id}/return-waiting', [AdminController::class, 'returnToWaiting'])->name('api.queue.returnWaiting');
         Route::post('/queue/{id}/complete', [AdminController::class, 'completeQueue'])->name('api.queue.complete');
         Route::post('/queue/{id}/priority', [AdminController::class, 'setQueuePriority'])->name('api.queue.priority');
         Route::delete('/queue/{id}', [AdminController::class, 'removeQueue'])->name('api.queue.remove');

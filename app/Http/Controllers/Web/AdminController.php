@@ -454,6 +454,7 @@ class AdminController extends Controller
                 'staff_id' => 'required|exists:users,id',
                 'service_id' => 'required|exists:services,id',
                 'is_priority' => 'nullable|boolean',
+                'notes' => 'nullable|string|max:1000',
             ]);
 
             // Get or create customer
@@ -495,6 +496,7 @@ class AdminController extends Controller
                 'queue_number' => \App\Models\Queue::generateQueueNumber(),
                 'status' => 'waiting',
                 'is_vip' => $validated['is_priority'] ?? false,
+                'notes' => $validated['notes'] ?? null,
             ]);
 
             return response()->json([
@@ -537,10 +539,7 @@ class AdminController extends Controller
                 ]);
             }
 
-            // Update any currently serving to Served
-            \App\Models\Queue::where('status', 'serving')->update(['status' => 'completed']);
-
-            // Set this one as serving
+            // Set this one as serving (allow multiple serving at same time)
             $next->update(['status' => 'serving']);
 
             return response()->json([
@@ -617,6 +616,36 @@ class AdminController extends Controller
     }
 
     /**
+     * Return queue item to waiting (AJAX)
+     */
+    public function returnToWaiting($id)
+    {
+        try {
+            $queue = \App\Models\Queue::findOrFail($id);
+
+            $queue->update(['status' => 'waiting']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إرجاع العميل لقائمة الانتظار'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error returning to waiting: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ'
+            ], 500);
+        }
+    }
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ'
+            ], 500);
+        }
+    }
+
+    /**
      * Set queue priority (AJAX)
      */
     public function setQueuePriority(Request $request, $id)
@@ -637,6 +666,65 @@ class AdminController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('Error setting queue priority: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get queue details (AJAX)
+     */
+    public function getQueue($id)
+    {
+        try {
+            $queue = \App\Models\Queue::with(['appointment.customer', 'appointment.staff', 'appointment.service'])
+                ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $queue
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على البيانات'
+            ], 404);
+        }
+    }
+
+    /**
+     * Update queue (AJAX)
+     */
+    public function updateQueue(Request $request, $id)
+    {
+        try {
+            $queue = \App\Models\Queue::with('appointment.customer')->findOrFail($id);
+
+            // Update customer data
+            if ($queue->appointment && $queue->appointment->customer) {
+                $queue->appointment->customer->update([
+                    'name' => $request->customer_name,
+                    'phone' => $request->customer_phone,
+                    'email' => $request->customer_email ?: null,
+                ]);
+            }
+
+            // Update VIP status and notes
+            $queue->update([
+                'is_vip' => $request->is_vip ? true : false,
+                'notes' => $request->notes ?: null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث البيانات بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error updating queue: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ'

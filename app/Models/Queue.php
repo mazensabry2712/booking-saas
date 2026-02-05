@@ -13,6 +13,7 @@ class Queue extends Model
         'status',
         'is_vip',
         'counter_number',
+        'notes',
     ];
 
     protected $casts = [

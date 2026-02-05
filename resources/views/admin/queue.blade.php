@@ -53,9 +53,11 @@
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم الدور</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">اسم العميل</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم الهاتف</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">البريد الإلكتروني</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الموظف</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الخدمة</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأولوية</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">ملاحظات</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الإجراءات</th>
                             </tr>
@@ -71,6 +73,9 @@
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ $queue->appointment?->customer?->phone ?? '-' }}
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ $queue->appointment?->customer?->email ?? '-' }}
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ $queue->appointment?->staff?->name ?? '-' }}
@@ -94,6 +99,13 @@
                                                 ⭐ VIP
                                             </span>
                                         @else
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">عادي</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-4 text-sm text-gray-500 max-w-xs">
+                                        @if($queue->notes)
+                                            <span class="block truncate" title="{{ $queue->notes }}">{{ \Illuminate\Support\Str::limit($queue->notes, 30) }}</span>
+                                        @else
                                             <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
@@ -114,6 +126,7 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-2 space-x-reverse">
+                                        <button onclick="viewQueue({{ $queue->id }})" class="text-gray-600 hover:text-gray-900">عرض</button>
                                         @if($queue->status === 'waiting')
                                             <button onclick="serveQueue({{ $queue->id }})" class="text-green-600 hover:text-green-900">خدمة</button>
                                             <button onclick="setPriority({{ $queue->id }}, {{ $queue->is_vip ? 0 : 1 }})" class="text-yellow-600 hover:text-yellow-900">
@@ -122,7 +135,9 @@
                                         @endif
                                         @if($queue->status === 'serving')
                                             <button onclick="completeQueue({{ $queue->id }})" class="text-blue-600 hover:text-blue-900">إنهاء</button>
+                                            <button onclick="returnToWaiting({{ $queue->id }})" class="text-orange-600 hover:text-orange-900">إرجاع</button>
                                         @endif
+                                        <button onclick="editQueue({{ $queue->id }})" class="text-indigo-600 hover:text-indigo-900">تعديل</button>
                                         <button onclick="removeQueue({{ $queue->id }})" class="text-red-600 hover:text-red-900">حذف</button>
                                     </td>
                                 </tr>
@@ -230,6 +245,11 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات</label>
+                    <textarea name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="أي ملاحظات إضافية عن العميل..."></textarea>
+                </div>
+
+                <div>
                     <label class="flex items-center">
                         <input type="checkbox" name="is_priority" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                         <span class="mr-2 text-sm font-medium text-gray-700">⭐ عميل له أولوية (VIP)</span>
@@ -251,14 +271,183 @@
         </div>
     </div>
 
+    <!-- Edit Queue Modal -->
+    <div id="editQueueModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-lg bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900">تعديل بيانات العميل</h3>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="editQueueForm" class="space-y-4">
+                @csrf
+                <input type="hidden" name="queue_id" id="edit_queue_id">
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">اسم العميل <span class="text-red-500">*</span></label>
+                    <input type="text" name="customer_name" id="edit_customer_name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">رقم الهاتف <span class="text-red-500">*</span></label>
+                    <input type="tel" name="customer_phone" id="edit_customer_phone" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني</label>
+                    <input type="email" name="customer_email" id="edit_customer_email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات</label>
+                    <textarea name="notes" id="edit_notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="أي ملاحظات إضافية عن العميل..."></textarea>
+                </div>
+
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="is_vip" id="edit_is_vip" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="mr-2 text-sm font-medium text-gray-700">⭐ عميل له أولوية (VIP)</span>
+                    </label>
+                </div>
+
+                <div id="editErrorMessage" class="hidden bg-red-50 border border-red-200 text-red-800 rounded-lg p-3"></div>
+                <div id="editSuccessMessage" class="hidden bg-green-50 border border-green-200 text-green-800 rounded-lg p-3"></div>
+
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        حفظ التعديلات
+                    </button>
+                    <button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Queue Modal -->
+    <div id="viewQueueModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-lg bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900">تفاصيل العميل</h3>
+                <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="viewQueueContent" class="space-y-4">
+                <!-- Queue Number & Status -->
+                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                    <div class="text-center">
+                        <span class="text-3xl font-bold text-blue-600" id="view_queue_number">#1</span>
+                        <p class="text-sm text-gray-500">رقم الدور</p>
+                    </div>
+                    <div id="view_status_badge"></div>
+                </div>
+
+                <!-- Customer Info -->
+                <div class="bg-white border rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                        <svg class="w-5 h-5 ml-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        بيانات العميل
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-gray-500">الاسم</label>
+                            <p class="font-medium text-gray-900" id="view_customer_name">-</p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">رقم الهاتف</label>
+                            <p class="font-medium text-gray-900" id="view_customer_phone">-</p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">البريد الإلكتروني</label>
+                            <p class="font-medium text-gray-900" id="view_customer_email">-</p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">الأولوية</label>
+                            <p id="view_vip_status">-</p>
+                        </div>
+                    </div>
+                    <!-- Notes Section -->
+                    <div class="mt-3 pt-3 border-t" id="view_notes_section">
+                        <label class="text-xs text-gray-500">ملاحظات</label>
+                        <p class="font-medium text-gray-900 whitespace-pre-wrap" id="view_notes">-</p>
+                    </div>
+                </div>
+
+                <!-- Staff & Service Info -->
+                <div class="bg-white border rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                        <svg class="w-5 h-5 ml-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        الموظف والخدمة
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-gray-500">الموظف</label>
+                            <p class="font-medium text-gray-900" id="view_staff_name">-</p>
+                            <p class="text-sm text-gray-500" id="view_staff_specialization"></p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">الخدمة</label>
+                            <p class="font-medium text-gray-900" id="view_service_name">-</p>
+                            <p class="text-sm text-blue-600" id="view_service_duration"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Info -->
+                <div class="bg-white border rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                        <svg class="w-5 h-5 ml-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        معلومات الوقت
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-gray-500">تاريخ الإضافة</label>
+                            <p class="font-medium text-gray-900" id="view_created_at">-</p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">آخر تحديث</label>
+                            <p class="font-medium text-gray-900" id="view_updated_at">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 flex gap-3">
+                <button onclick="editQueueFromView()" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    تعديل
+                </button>
+                <button onclick="closeViewModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                    إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let currentViewQueueId = null;
+
         function openAddModal() {
             document.getElementById('addQueueModal').classList.remove('hidden');
             resetForm();
         }
 
         function closeAddModal() {
-            document.getElementById('addQueueModal').classList.add('hidden');
+            document.getElementById('addQueueModal').classList.add('hidden');;
             document.getElementById('addQueueForm').reset();
             document.getElementById('addErrorMessage').classList.add('hidden');
             document.getElementById('addSuccessMessage').classList.add('hidden');
@@ -491,6 +680,35 @@
             }
         }
 
+        // Return to waiting
+        async function returnToWaiting(id) {
+            if (!confirm('هل تريد إرجاع هذا العميل لقائمة الانتظار؟')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/api/queue/${id}/return-waiting`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    alert('✓ تم إرجاع العميل لقائمة الانتظار');
+                    window.location.reload();
+                } else {
+                    alert('✕ ' + (result.message || 'حدث خطأ'));
+                }
+            } catch (error) {
+                alert('✕ حدث خطأ! حاول مرة أخرى');
+            }
+        }
+
         // Set priority
         async function setPriority(id, priority) {
             try {
@@ -550,6 +768,180 @@
                 closeAddModal();
             }
         });
+
+        document.getElementById('editQueueModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+
+        // Edit Queue Functions
+        function closeEditModal() {
+            document.getElementById('editQueueModal').classList.add('hidden');
+            document.getElementById('editQueueForm').reset();
+            document.getElementById('editErrorMessage').classList.add('hidden');
+            document.getElementById('editSuccessMessage').classList.add('hidden');
+        }
+
+        async function editQueue(id) {
+            try {
+                const response = await fetch(`/admin/api/queue/${id}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const queue = result.data;
+                    document.getElementById('edit_queue_id').value = queue.id;
+                    document.getElementById('edit_customer_name').value = queue.appointment?.customer?.name || '';
+                    document.getElementById('edit_customer_phone').value = queue.appointment?.customer?.phone || '';
+                    document.getElementById('edit_customer_email').value = queue.appointment?.customer?.email || '';
+                    document.getElementById('edit_notes').value = queue.notes || '';
+                    document.getElementById('edit_is_vip').checked = queue.is_vip;
+                    document.getElementById('editQueueModal').classList.remove('hidden');
+                } else {
+                    alert('خطأ في تحميل البيانات');
+                }
+            } catch (error) {
+                alert('حدث خطأ في الاتصال');
+            }
+        }
+
+        document.getElementById('editQueueForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const queueId = document.getElementById('edit_queue_id').value;
+            const errorDiv = document.getElementById('editErrorMessage');
+            const successDiv = document.getElementById('editSuccessMessage');
+
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+
+            const data = {
+                customer_name: document.getElementById('edit_customer_name').value,
+                customer_phone: document.getElementById('edit_customer_phone').value,
+                customer_email: document.getElementById('edit_customer_email').value,
+                notes: document.getElementById('edit_notes').value,
+                is_vip: document.getElementById('edit_is_vip').checked ? 1 : 0
+            };
+
+            try {
+                const response = await fetch(`/admin/api/queue/${queueId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    successDiv.textContent = '✓ تم حفظ التعديلات بنجاح';
+                    successDiv.classList.remove('hidden');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    errorDiv.textContent = '✕ ' + (result.message || 'حدث خطأ');
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = '✕ حدث خطأ في الاتصال';
+                errorDiv.classList.remove('hidden');
+            }
+        });
+
+        // View Queue Functions
+        function closeViewModal() {
+            document.getElementById('viewQueueModal').classList.add('hidden');
+            currentViewQueueId = null;
+        }
+
+        document.getElementById('viewQueueModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeViewModal();
+            }
+        });
+
+        async function viewQueue(id) {
+            currentViewQueueId = id;
+            try {
+                const response = await fetch(`/admin/api/queue/${id}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const queue = result.data;
+
+                    // Queue number
+                    document.getElementById('view_queue_number').textContent = '#' + queue.queue_number;
+
+                    // Status badge
+                    let statusHtml = '';
+                    if (queue.status === 'waiting') {
+                        statusHtml = '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">في الانتظار</span>';
+                    } else if (queue.status === 'serving') {
+                        statusHtml = '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">يتم الخدمة</span>';
+                    } else if (queue.status === 'completed') {
+                        statusHtml = '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">مكتمل</span>';
+                    } else {
+                        statusHtml = '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">ملغي</span>';
+                    }
+                    document.getElementById('view_status_badge').innerHTML = statusHtml;
+
+                    // Customer info
+                    document.getElementById('view_customer_name').textContent = queue.appointment?.customer?.name || '-';
+                    document.getElementById('view_customer_phone').textContent = queue.appointment?.customer?.phone || '-';
+                    document.getElementById('view_customer_email').textContent = queue.appointment?.customer?.email || '-';
+
+                    // VIP status
+                    if (queue.is_vip) {
+                        document.getElementById('view_vip_status').innerHTML = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">⭐ VIP</span>';
+                    } else {
+                        document.getElementById('view_vip_status').innerHTML = '<span class="text-gray-500">عادي</span>';
+                    }
+
+                    // Staff info
+                    document.getElementById('view_staff_name').textContent = queue.appointment?.staff?.name || '-';
+                    document.getElementById('view_staff_specialization').textContent = queue.appointment?.staff?.specialization_ar || queue.appointment?.staff?.specialization || '';
+
+                    // Service info
+                    if (queue.appointment?.service) {
+                        document.getElementById('view_service_name').textContent = queue.appointment.service.name_ar || queue.appointment.service.name;
+                        document.getElementById('view_service_duration').textContent = queue.appointment.service.duration + ' دقيقة';
+                    } else {
+                        document.getElementById('view_service_name').textContent = queue.appointment?.service_type || '-';
+                        document.getElementById('view_service_duration').textContent = '';
+                    }
+
+                    // Time info
+                    document.getElementById('view_created_at').textContent = new Date(queue.created_at).toLocaleString('ar-EG');
+                    document.getElementById('view_updated_at').textContent = new Date(queue.updated_at).toLocaleString('ar-EG');
+
+                    // Notes
+                    const notesSection = document.getElementById('view_notes_section');
+                    const notesElement = document.getElementById('view_notes');
+                    if (queue.notes && queue.notes.trim() !== '') {
+                        notesElement.textContent = queue.notes;
+                        notesSection.classList.remove('hidden');
+                    } else {
+                        notesElement.textContent = 'لا توجد ملاحظات';
+                        notesSection.classList.remove('hidden');
+                    }
+
+                    document.getElementById('viewQueueModal').classList.remove('hidden');
+                } else {
+                    alert('خطأ في تحميل البيانات');
+                }
+            } catch (error) {
+                alert('حدث خطأ في الاتصال');
+            }
+        }
+
+        function editQueueFromView() {
+            closeViewModal();
+            if (currentViewQueueId) {
+                editQueue(currentViewQueueId);
+            }
+        }
     </script>
 </body>
 </html>
