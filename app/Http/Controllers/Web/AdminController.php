@@ -145,7 +145,7 @@ class AdminController extends Controller
     {
         $queues = \App\Models\Queue::with(['appointment.customer', 'appointment.staff'])
             ->whereIn('status', ['waiting', 'serving'])
-            ->orderBy('priority', 'desc')
+            ->orderBy('is_vip', 'desc')
             ->orderBy('queue_number', 'asc')
             ->get();
 
@@ -177,7 +177,7 @@ class AdminController extends Controller
             'waiting' => \App\Models\Queue::where('status', 'waiting')->count(),
             'serving' => \App\Models\Queue::where('status', 'serving')->count(),
             'completed' => \App\Models\Queue::where('status', 'completed')->count(),
-            'priority' => \App\Models\Queue::where('priority', true)->whereIn('status', ['waiting', 'serving'])->count(),
+            'priority' => \App\Models\Queue::where('is_vip', true)->whereIn('status', ['waiting', 'serving'])->count(),
         ];
 
         // Staff performance
@@ -495,7 +495,7 @@ class AdminController extends Controller
                 'appointment_id' => $appointment->id,
                 'queue_number' => $queueNumber,
                 'status' => 'waiting',
-                'priority' => $validated['is_priority'] ?? false,
+                'is_vip' => $validated['is_priority'] ?? false,
             ]);
 
             return response()->json([
@@ -525,9 +525,9 @@ class AdminController extends Controller
     public function callNext(Request $request)
     {
         try {
-            // Get next waiting in queue (priority first)
+            // Get next waiting in queue (VIP first)
             $next = \App\Models\Queue::where('status', 'waiting')
-                ->orderBy('priority', 'desc')
+                ->orderBy('is_vip', 'desc')
                 ->orderBy('queue_number', 'asc')
                 ->first();
 
@@ -538,8 +538,8 @@ class AdminController extends Controller
                 ]);
             }
 
-            // Update any currently serving to waiting
-            \App\Models\Queue::where('status', 'serving')->update(['status' => 'waiting']);
+            // Update any currently serving to Served
+            \App\Models\Queue::where('status', 'serving')->update(['status' => 'completed']);
 
             // Set this one as serving
             $next->update(['status' => 'serving']);
@@ -567,8 +567,8 @@ class AdminController extends Controller
         try {
             $queue = \App\Models\Queue::findOrFail($id);
 
-            // Update any currently serving to waiting
-            \App\Models\Queue::where('status', 'serving')->update(['status' => 'waiting']);
+            // Update any currently serving to Served
+            \App\Models\Queue::where('status', 'serving')->update(['status' => 'completed']);
 
             $queue->update(['status' => 'serving']);
 
@@ -595,8 +595,7 @@ class AdminController extends Controller
             $queue = \App\Models\Queue::findOrFail($id);
 
             $queue->update([
-                'status' => 'completed',
-                'served_at' => now()
+                'status' => 'completed'
             ]);
 
             // Update appointment status
@@ -630,7 +629,7 @@ class AdminController extends Controller
                 'priority' => 'required|boolean',
             ]);
 
-            $queue->update(['priority' => $validated['priority']]);
+            $queue->update(['is_vip' => $validated['priority']]);
 
             return response()->json([
                 'success' => true,

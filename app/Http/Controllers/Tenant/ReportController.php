@@ -255,14 +255,14 @@ class ReportController extends Controller
         }
 
         $total = $query->count();
-        $served = (clone $query)->where('status', 'Served')->count();
-        $skipped = (clone $query)->where('status', 'Skipped')->count();
-        $avgWaitTime = (clone $query)->where('status', 'Served')->avg('estimated_wait_time');
+        $served = (clone $query)->where('status', 'completed')->count();
+        $skipped = (clone $query)->where('status', 'cancelled')->count();
+        $avgWaitTime = (clone $query)->where('status', 'completed')->avg('estimated_wait_time');
 
         return [
             'total_queues' => $total,
-            'served' => $served,
-            'skipped' => $skipped,
+            'completed' => $served,
+            'cancelled' => $skipped,
             'skip_rate' => $total > 0 ? round(($skipped / $total) * 100, 2) : 0,
             'average_wait_time' => round($avgWaitTime ?? 0, 2),
         ];

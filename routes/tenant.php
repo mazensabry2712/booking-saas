@@ -20,18 +20,25 @@ use App\Http\Middleware\SetTenantLocale;
 |
 */
 
-// Change Language - Must be OUTSIDE the locale middleware to avoid redirect loop
-Route::get('/change-language/{lang}', function ($lang) {
-    if (in_array($lang, ['en', 'ar'])) {
-        session()->put('locale', $lang);
-        session()->save();
-    }
+// All tenant routes must go through tenancy middleware
+Route::middleware([
+    'web',
+    InitializeTenancyByDomain::class,
+    PreventAccessFromCentralDomains::class,
+])->group(function () {
 
-    return redirect()->back();
-})->name('change.language');
+    // Change Language - Must be OUTSIDE the locale middleware to avoid redirect loop
+    Route::get('/change-language/{lang}', function ($lang) {
+        if (in_array($lang, ['en', 'ar'])) {
+            session()->put('locale', $lang);
+            session()->save();
+        }
 
-// Routes with locale middleware
-Route::middleware([SetTenantLocale::class])->group(function () {
+        return redirect()->back();
+    })->name('change.language');
+
+    // Routes with locale middleware
+    Route::middleware([SetTenantLocale::class])->group(function () {
 
     // Booking Form - Public Page
     Route::get('/', function () {
@@ -63,4 +70,5 @@ Route::middleware([SetTenantLocale::class])->group(function () {
         // Create appointment (public)
         Route::post('appointments', [AppointmentController::class, 'store']);
     });
-});
+    }); // End SetTenantLocale middleware
+}); // End tenancy middleware

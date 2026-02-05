@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', __('Admin')) - {{ tenant()->name ?? config('app.name') }}</title>
+    @php
+        $businessSettings = \App\Models\Setting::where('tenant_id', tenant()->id)->first();
+        $businessName = $businessSettings->business_name ?? tenant()->name ?? config('app.name');
+        $businessLogo = $businessSettings->logo ?? null;
+    @endphp
+    <title>@yield('title', __('Admin')) - {{ $businessName }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     @stack('styles')
 </head>
@@ -15,8 +20,11 @@
             <div class="flex justify-between h-14">
                 <!-- Logo & Navigation Links -->
                 <div class="flex items-center gap-1">
-                    <a href="/admin/dashboard" class="text-xl font-bold text-blue-600 {{ app()->getLocale() === 'ar' ? 'ml-6' : 'mr-6' }}">
-                        {{ tenant()->name ?? config('app.name') }}
+                    <a href="/admin/dashboard" class="flex items-center gap-2 text-xl font-bold text-blue-600 {{ app()->getLocale() === 'ar' ? 'ml-6' : 'mr-6' }}">
+                        @if($businessLogo)
+                            <img src="{{ asset('storage/' . $businessLogo) }}" alt="{{ $businessName }}" class="h-8 w-auto">
+                        @endif
+                        <span>{{ $businessName }}</span>
                     </a>
 
                     <div class="hidden md:flex items-center">

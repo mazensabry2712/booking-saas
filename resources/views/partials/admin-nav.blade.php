@@ -2,6 +2,7 @@
     $isArabic = app()->getLocale() === 'ar';
     $businessSettings = \App\Models\Setting::where('tenant_id', tenant()->id)->first();
     $businessName = $businessSettings->business_name ?? tenant()->name ?? config('app.name');
+    $businessLogo = $businessSettings->logo ?? null;
 @endphp
 <!-- Top Navigation Bar -->
 <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
@@ -9,8 +10,11 @@
         <div class="flex justify-between h-14">
             <!-- Logo & Navigation Links -->
             <div class="flex items-center gap-1">
-                <a href="/admin/dashboard" class="text-xl font-bold text-blue-600 {{ $isArabic ? 'ml-6' : 'mr-6' }}">
-                    {{ $businessName }}
+                <a href="/admin/dashboard" class="flex items-center gap-2 text-xl font-bold text-blue-600 {{ $isArabic ? 'ml-6' : 'mr-6' }}">
+                    @if($businessLogo)
+                        <img src="{{ asset('storage/' . $businessLogo) }}" alt="{{ $businessName }}" class="h-8 w-auto">
+                    @endif
+                    <span>{{ $businessName }}</span>
                 </a>
 
                 <div class="hidden md:flex items-center">

@@ -61,7 +61,7 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($queues as $queue)
-                                <tr class="@if($queue->priority) bg-yellow-50 @endif">
+                                <tr class="@if($queue->is_vip) bg-yellow-50 @endif">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                                         #{{ $queue->queue_number }}
                                     </td>
@@ -75,7 +75,7 @@
                                         {{ $queue->appointment?->service_type ?? '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        @if($queue->priority)
+                                        @if($queue->is_vip)
                                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                                 ⭐ أولوية
                                             </span>
@@ -94,7 +94,7 @@
                                             @if($queue->status === 'waiting') في الانتظار
                                             @elseif($queue->status === 'serving') يتم الخدمة
                                             @elseif($queue->status === 'completed') مكتمل
-                                            @elseif($queue->status === 'cancelled') ملغي
+                                            @elseif($queue->status === 'cancelled') تم التخطي
                                             @else {{ $queue->status }}
                                             @endif
                                         </span>
@@ -102,8 +102,8 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         @if($queue->status === 'waiting')
                                             <button onclick="serveQueue({{ $queue->id }})" class="text-green-600 hover:text-green-900 ml-3">خدمة</button>
-                                            <button onclick="setPriority({{ $queue->id }}, {{ $queue->priority ? 0 : 1 }})" class="text-yellow-600 hover:text-yellow-900 ml-3">
-                                                {{ $queue->priority ? 'إلغاء الأولوية' : 'أولوية' }}
+                                            <button onclick="setPriority({{ $queue->id }}, {{ $queue->is_vip ? 0 : 1 }})" class="text-yellow-600 hover:text-yellow-900 ml-3">
+                                                {{ $queue->is_vip ? 'إلغاء الأولوية' : 'أولوية' }}
                                             </button>
                                         @endif
                                         @if($queue->status === 'serving')

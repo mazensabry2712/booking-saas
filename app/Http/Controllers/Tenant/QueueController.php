@@ -17,18 +17,15 @@ class QueueController extends Controller
      */
     public function index(Request $request)
     {
-        $tenant = tenant();
-
-        $status = $request->input('status', 'Waiting');
+        $status = $request->input('status');
         $date = $request->input('date', now()->toDateString());
 
-        $queues = Queue::where('tenant_id', $tenant->id)
-            ->whereDate('created_at', $date)
+        $queues = Queue::whereDate('created_at', $date)
             ->when($status, function ($query, $status) {
                 return $query->where('status', $status);
             })
             ->with(['appointment.customer', 'appointment.staff'])
-            ->orderBy('priority', 'desc')
+            ->orderBy('is_vip', 'desc')
             ->orderBy('queue_number', 'asc')
             ->get();
 
@@ -42,8 +39,8 @@ class QueueController extends Controller
             'success' => true,
             'data' => [
                 'total' => $queues->count(),
-                'waiting' => $queues->where('status', 'Waiting')->count(),
-                'current' => $queues->where('status', 'Serving')->first(),
+                'waiting' => $queues->where('status', 'waiting')->count(),
+                'current' => $queues->where('status', 'serving')->first(),
                 'queues' => $queues,
             ]
         ]);
@@ -58,9 +55,7 @@ class QueueController extends Controller
             'appointment_id' => 'required|exists:appointments,id',
         ]);
 
-        $tenant = tenant();
-        $appointment = Appointment::where('tenant_id', $tenant->id)
-            ->findOrFail($request->appointment_id);
+        $appointment = Appointment::findOrFail($request->appointment_id);
 
         // Check if appointment already in queue
         $existingQueue = Queue::where('appointment_id', $appointment->id)->first();
@@ -73,30 +68,22 @@ class QueueController extends Controller
         }
 
         // Get the last queue number for today
-        $lastQueue = Queue::where('tenant_id', $tenant->id)
-            ->whereDate('created_at', now()->toDateString())
-            ->orderBy('queue_number', 'desc')
-            ->first();
+        $lastQueueNumber = Queue::whereDate('created_at', now()->toDateString())
+            ->max('queue_number') ?? 0;
 
-        $queueNumber = $lastQueue ? $lastQueue->queue_number + 1 : 1;
+        $queueNumber = $lastQueueNumber + 1;
 
         // Check if customer is VIP
         $customer = User::find($appointment->customer_id);
         $isVip = $customer->is_vip ?? false;
-        $priority = $isVip ? 1 : 0;
 
         // Create queue entry
         $queue = Queue::create([
-            'tenant_id' => $tenant->id,
             'appointment_id' => $appointment->id,
             'queue_number' => $queueNumber,
-            'status' => 'Waiting',
-            'priority' => $priority,
-            'estimated_wait_time' => $this->calculateEstimatedWaitTime(null, $priority),
+            'status' => 'waiting',
+            'is_vip' => $isVip,
         ]);
-
-        // Update estimated wait time for all waiting queues
-        $this->updateAllEstimatedWaitTimes();
 
         return response()->json([
             'success' => true,
@@ -110,18 +97,15 @@ class QueueController extends Controller
      */
     public function next(Request $request)
     {
-        $tenant = tenant();
-
         // Mark current serving as served
-        Queue::where('tenant_id', $tenant->id)
-            ->where('status', 'Serving')
-            ->update(['status' => 'Served']);
+        Queue::where('status', 'serving')
+            ->whereDate('created_at', now()->toDateString())
+            ->update(['status' => 'completed']);
 
         // Get next queue entry (VIP priority first, then by queue number)
-        $nextQueue = Queue::where('tenant_id', $tenant->id)
-            ->where('status', 'Waiting')
+        $nextQueue = Queue::where('status', 'waiting')
             ->whereDate('created_at', now()->toDateString())
-            ->orderBy('priority', 'desc')
+            ->orderBy('is_vip', 'desc')
             ->orderBy('queue_number', 'asc')
             ->first();
 
@@ -134,33 +118,34 @@ class QueueController extends Controller
 
         // Update status to serving
         $nextQueue->update([
-            'status' => 'Serving',
-            'served_at' => now(),
+            'status' => 'serving',
         ]);
 
         // Update appointment status to Confirmed
         $nextQueue->appointment->update(['status' => 'Confirmed']);
 
         // Send notification to the customer
-        $customer = $nextQueue->appointment->customer;
-        $locale = $tenant->settings->language ?? 'en';
-        SendQueueNotification::dispatch($nextQueue, $customer, 'next', $locale);
+        try {
+            $customer = $nextQueue->appointment->customer;
+            $tenant = tenant();
+            $locale = $tenant->settings->language ?? 'en';
+            SendQueueNotification::dispatch($nextQueue, $customer, 'next', $locale);
 
-        // Check if there's someone ready next (only 1 person ahead)
-        $readyQueue = Queue::where('tenant_id', $tenant->id)
-            ->where('status', 'Waiting')
-            ->whereDate('created_at', now()->toDateString())
-            ->orderBy('priority', 'desc')
-            ->orderBy('queue_number', 'asc')
-            ->first();
+            // Check if there's someone ready next (only 1 person ahead)
+            $readyQueue = Queue::where('status', 'waiting')
+                ->whereDate('created_at', now()->toDateString())
+                ->orderBy('is_vip', 'desc')
+                ->orderBy('queue_number', 'asc')
+                ->first();
 
-        if ($readyQueue) {
-            $readyCustomer = $readyQueue->appointment->customer;
-            SendQueueNotification::dispatch($readyQueue, $readyCustomer, 'ready', $locale);
+            if ($readyQueue) {
+                $readyCustomer = $readyQueue->appointment->customer;
+                SendQueueNotification::dispatch($readyQueue, $readyCustomer, 'ready', $locale);
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
+            \Log::error('Queue notification failed: ' . $e->getMessage());
         }
-
-        // Update estimated wait time for remaining queues
-        $this->updateAllEstimatedWaitTimes();
 
         return response()->json([
             'success' => true,
@@ -170,30 +155,25 @@ class QueueController extends Controller
     }
 
     /**
-     * Set or update priority (VIP)
+     * Set or update VIP status
      */
     public function priority(Request $request)
     {
         $request->validate([
             'queue_id' => 'required|exists:queues,id',
-            'priority' => 'required|integer|min:0|max:10',
+            'is_vip' => 'required|boolean',
         ]);
 
-        $tenant = tenant();
-        $queue = Queue::where('tenant_id', $tenant->id)
-            ->findOrFail($request->queue_id);
+        $queue = Queue::findOrFail($request->queue_id);
 
-        if ($queue->status !== 'Waiting') {
+        if ($queue->status !== 'waiting') {
             return response()->json([
                 'error' => 'Invalid operation',
                 'message' => 'Can only change priority for waiting queues'
             ], 400);
         }
 
-        $queue->update(['priority' => $request->priority]);
-
-        // Update estimated wait time for all queues
-        $this->updateAllEstimatedWaitTimes();
+        $queue->update(['is_vip' => $request->is_vip]);
 
         return response()->json([
             'success' => true,
@@ -207,25 +187,26 @@ class QueueController extends Controller
      */
     public function skip(Request $request, $id)
     {
-        $tenant = tenant();
-        $queue = Queue::where('tenant_id', $tenant->id)->findOrFail($id);
+        $queue = Queue::findOrFail($id);
 
-        if ($queue->status !== 'Waiting') {
+        if ($queue->status !== 'waiting') {
             return response()->json([
                 'error' => 'Invalid operation',
                 'message' => 'Can only skip waiting queues'
             ], 400);
         }
 
-        $queue->update(['status' => 'Skipped']);
+        $queue->update(['status' => 'cancelled']);
 
         // Send notification to the customer
-        $customer = $queue->appointment->customer;
-        $locale = $tenant->settings->language ?? 'en';
-        SendQueueNotification::dispatch($queue, $customer, 'skipped', $locale);
-
-        // Update estimated wait time for remaining queues
-        $this->updateAllEstimatedWaitTimes();
+        try {
+            $customer = $queue->appointment->customer;
+            $tenant = tenant();
+            $locale = $tenant->settings->language ?? 'en';
+            SendQueueNotification::dispatch($queue, $customer, 'cancelled', $locale);
+        } catch (\Exception $e) {
+            \Log::error('Queue skip notification failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,
@@ -239,13 +220,10 @@ class QueueController extends Controller
      */
     public function byStatus($status)
     {
-        $tenant = tenant();
-
-        $queues = Queue::where('tenant_id', $tenant->id)
-            ->where('status', $status)
+        $queues = Queue::where('status', $status)
             ->whereDate('created_at', now()->toDateString())
             ->with(['appointment.customer', 'appointment.staff'])
-            ->orderBy('priority', 'desc')
+            ->orderBy('is_vip', 'desc')
             ->orderBy('queue_number', 'asc')
             ->get();
 
@@ -261,13 +239,11 @@ class QueueController extends Controller
     public function myQueue(Request $request)
     {
         $user = $request->user();
-        $tenant = tenant();
 
-        $queue = Queue::where('tenant_id', $tenant->id)
-            ->whereHas('appointment', function ($query) use ($user) {
+        $queue = Queue::whereHas('appointment', function ($query) use ($user) {
                 $query->where('customer_id', $user->id);
             })
-            ->where('status', 'Waiting')
+            ->where('status', 'waiting')
             ->whereDate('created_at', now()->toDateString())
             ->with(['appointment'])
             ->first();
@@ -280,13 +256,12 @@ class QueueController extends Controller
         }
 
         // Calculate position in queue
-        $position = Queue::where('tenant_id', $tenant->id)
-            ->where('status', 'Waiting')
+        $position = Queue::where('status', 'waiting')
             ->whereDate('created_at', now()->toDateString())
             ->where(function ($query) use ($queue) {
-                $query->where('priority', '>', $queue->priority)
+                $query->where('is_vip', '>', $queue->is_vip)
                     ->orWhere(function ($q) use ($queue) {
-                        $q->where('priority', $queue->priority)
+                        $q->where('is_vip', $queue->is_vip)
                             ->where('queue_number', '<', $queue->queue_number);
                     });
             })
@@ -301,7 +276,7 @@ class QueueController extends Controller
                 'queue' => $queue,
                 'position' => $position,
                 'estimated_wait_time' => $queue->estimated_wait_time,
-                'is_vip' => $queue->priority > 0,
+                'is_vip' => $queue->is_vip,
             ]
         ]);
     }
@@ -309,32 +284,28 @@ class QueueController extends Controller
     /**
      * Calculate estimated wait time
      */
-    private function calculateEstimatedWaitTime($queue = null, $priority = 0)
+    private function calculateEstimatedWaitTime($queue = null, $isVip = false)
     {
-        $tenant = tenant();
-
         // Average service time per customer (in minutes)
         $avgServiceTime = 15;
 
         if ($queue) {
             // Count queues ahead with higher priority
-            $queuesAhead = Queue::where('tenant_id', $tenant->id)
-                ->where('status', 'Waiting')
+            $queuesAhead = Queue::where('status', 'waiting')
                 ->whereDate('created_at', now()->toDateString())
                 ->where(function ($q) use ($queue) {
-                    $q->where('priority', '>', $queue->priority)
+                    $q->where('is_vip', '>', $queue->is_vip)
                         ->orWhere(function ($query) use ($queue) {
-                            $query->where('priority', $queue->priority)
+                            $query->where('is_vip', $queue->is_vip)
                                 ->where('queue_number', '<', $queue->queue_number);
                         });
                 })
                 ->count();
         } else {
             // For new queue, count all with higher or equal priority
-            $queuesAhead = Queue::where('tenant_id', $tenant->id)
-                ->where('status', 'Waiting')
+            $queuesAhead = Queue::where('status', 'waiting')
                 ->whereDate('created_at', now()->toDateString())
-                ->where('priority', '>=', $priority)
+                ->where('is_vip', '>=', $isVip)
                 ->count();
         }
 
@@ -345,35 +316,11 @@ class QueueController extends Controller
     }
 
     /**
-     * Update estimated wait time for all waiting queues
-     */
-    private function updateAllEstimatedWaitTimes()
-    {
-        $tenant = tenant();
-
-        $waitingQueues = Queue::where('tenant_id', $tenant->id)
-            ->where('status', 'Waiting')
-            ->whereDate('created_at', now()->toDateString())
-            ->orderBy('priority', 'desc')
-            ->orderBy('queue_number', 'asc')
-            ->get();
-
-        foreach ($waitingQueues as $queue) {
-            $queue->update([
-                'estimated_wait_time' => $this->calculateEstimatedWaitTime($queue)
-            ]);
-        }
-    }
-
-    /**
      * Get queue status by queue number (for public display)
      */
     public function getQueueStatus($queueNumber)
     {
-        $tenant = tenant();
-
-        $queue = Queue::where('tenant_id', $tenant->id)
-            ->where('queue_number', $queueNumber)
+        $queue = Queue::where('queue_number', $queueNumber)
             ->whereDate('created_at', now()->toDateString())
             ->with(['appointment.customer'])
             ->first();
@@ -386,21 +333,19 @@ class QueueController extends Controller
         }
 
         // Count people ahead
-        $peopleAhead = Queue::where('tenant_id', $tenant->id)
-            ->where('status', 'Waiting')
+        $peopleAhead = Queue::where('status', 'waiting')
             ->whereDate('created_at', now()->toDateString())
             ->where(function ($q) use ($queue) {
-                $q->where('priority', '>', $queue->priority)
+                $q->where('is_vip', '>', $queue->is_vip)
                     ->orWhere(function ($query) use ($queue) {
-                        $query->where('priority', $queue->priority)
+                        $query->where('is_vip', $queue->is_vip)
                             ->where('queue_number', '<', $queue->queue_number);
                     });
             })
             ->count();
 
         // Get currently serving
-        $currentlyServing = Queue::where('tenant_id', $tenant->id)
-            ->where('status', 'Serving')
+        $currentlyServing = Queue::where('status', 'serving')
             ->whereDate('created_at', now()->toDateString())
             ->first();
 
@@ -409,7 +354,7 @@ class QueueController extends Controller
             'data' => [
                 'queue_number' => $queue->queue_number,
                 'status' => $queue->status,
-                'priority' => $queue->priority,
+                'is_vip' => $queue->is_vip,
                 'people_ahead' => $peopleAhead,
                 'estimated_wait_time' => $this->calculateEstimatedWaitTime($queue),
                 'currently_serving' => $currentlyServing ? $currentlyServing->queue_number : null,

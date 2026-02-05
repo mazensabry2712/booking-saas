@@ -11,19 +11,30 @@ class Queue extends Model
         'appointment_id',
         'queue_number',
         'status',
-        'priority',
-        'estimated_wait_time',
-        'served_at',
+        'is_vip',
+        'counter_number',
     ];
 
     protected $casts = [
-        'served_at' => 'datetime',
-        'priority' => 'boolean',
+        'is_vip' => 'boolean',
     ];
 
     // Relationships
     public function appointment()
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    // Get customer through appointment
+    public function customer()
+    {
+        return $this->hasOneThrough(
+            User::class,
+            Appointment::class,
+            'id', // Foreign key on appointments table
+            'id', // Foreign key on users table
+            'appointment_id', // Local key on queues table
+            'customer_id' // Local key on appointments table
+        );
     }
 }

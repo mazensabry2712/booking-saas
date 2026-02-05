@@ -49,6 +49,9 @@ Route::middleware(['tenant', 'tenant.locale'])->group(function () {
         Route::get('/staff/{id}/schedule', [AdminController::class, 'getStaffSchedule']);
     });
 
+    // Public Queue API (no auth required)
+    Route::get('/api/queue', [QueueController::class, 'publicQueue'])->name('api.queue.public');
+
     // Logout route (for forms)
     Route::post('/logout', function () {
         auth()->logout();

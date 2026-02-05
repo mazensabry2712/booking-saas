@@ -7,6 +7,7 @@
     @php
         $businessSettings = \App\Models\Setting::where('tenant_id', tenant()->id)->first();
         $businessName = $businessSettings->business_name ?? tenant()->name ?? config('app.name');
+        $businessLogo = $businessSettings->logo ?? null;
     @endphp
     <title>{{ __('Book Appointment') }} - {{ $businessName }}</title>
 
@@ -31,6 +32,9 @@
             </div>
 
             <div class="text-center">
+                @if($businessLogo)
+                    <img src="{{ asset('storage/' . $businessLogo) }}" alt="{{ $businessName }}" class="h-16 sm:h-20 w-auto mx-auto mb-3 sm:mb-4">
+                @endif
                 <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-1 sm:mb-2">{{ $businessName }}</h1>
                 <p class="text-sm sm:text-base text-gray-600">{{ __('Book your appointment online') }}</p>
             </div>

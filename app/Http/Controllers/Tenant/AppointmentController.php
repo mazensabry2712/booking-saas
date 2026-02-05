@@ -72,13 +72,15 @@ class AppointmentController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            // Add to queue
+            // Add to queue - generate sequential queue number for today
+            $lastQueueNumber = Queue::whereDate('created_at', today())->max('queue_number') ?? 0;
+            $queueNumber = $lastQueueNumber + 1;
+
             $queue = Queue::create([
-                'customer_id' => $customer->id,
                 'appointment_id' => $appointment->id,
-                'queue_number' => $this->generateQueueNumber(),
+                'queue_number' => $queueNumber,
                 'status' => 'waiting',
-                'priority' => $customer->is_vip ? 1 : 0,
+                'is_vip' => $customer->is_vip ?? false,
             ]);
 
             return response()->json([
@@ -105,15 +107,7 @@ class AppointmentController extends Controller
         }
     }
 
-    /**
-     * Generate unique queue number
-     */
-    private function generateQueueNumber(): string
-    {
-        $today = date('Ymd');
-        $count = Queue::whereDate('created_at', today())->count() + 1;
-        return 'Q' . $today . '-' . sprintf('%04d', $count);
-    }
+
 
     /**
      * Display appointments (for authenticated users)
