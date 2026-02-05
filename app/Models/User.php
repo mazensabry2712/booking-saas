@@ -23,6 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'phone',
+        'specialization',
+        'specialization_ar',
         'password',
         'is_vip',
         'avatar',

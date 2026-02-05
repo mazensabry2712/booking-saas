@@ -50,40 +50,54 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم الدور</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">اسم العميل</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم الهاتف</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">نوع الخدمة</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأولوية</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الإجراءات</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم الدور</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">اسم العميل</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم الهاتف</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الموظف</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الخدمة</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأولوية</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($queues as $queue)
                                 <tr class="@if($queue->is_vip) bg-yellow-50 @endif">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                                         #{{ $queue->queue_number }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {{ $queue->appointment?->customer?->name ?? 'غير محدد' }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ $queue->appointment?->customer?->phone ?? '-' }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $queue->appointment?->service_type ?? '-' }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        @if($queue->is_vip)
-                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                ⭐ أولوية
-                                            </span>
-                                        @else
-                                            <span class="text-gray-500">عادي</span>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ $queue->appointment?->staff?->name ?? '-' }}
+                                        @if($queue->appointment?->staff?->specialization_ar || $queue->appointment?->staff?->specialization)
+                                            <span class="block text-xs text-gray-500">{{ $queue->appointment?->staff?->specialization_ar ?? $queue->appointment?->staff?->specialization }}</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        @if($queue->appointment?->service)
+                                            {{ app()->getLocale() === 'ar' && $queue->appointment->service->name_ar ? $queue->appointment->service->name_ar : $queue->appointment->service->name }}
+                                            <span class="block text-xs text-blue-600">{{ $queue->appointment->service->duration }} {{ __('min') }}</span>
+                                        @elseif($queue->appointment?->service_type)
+                                            {{ $queue->appointment->service_type }}
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                        @if($queue->is_vip)
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                ⭐ VIP
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                             @if($queue->status === 'waiting') bg-blue-100 text-blue-800
                                             @elseif($queue->status === 'serving') bg-green-100 text-green-800
@@ -99,15 +113,15 @@
                                             @endif
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-2 space-x-reverse">
                                         @if($queue->status === 'waiting')
-                                            <button onclick="serveQueue({{ $queue->id }})" class="text-green-600 hover:text-green-900 ml-3">خدمة</button>
-                                            <button onclick="setPriority({{ $queue->id }}, {{ $queue->is_vip ? 0 : 1 }})" class="text-yellow-600 hover:text-yellow-900 ml-3">
-                                                {{ $queue->is_vip ? 'إلغاء الأولوية' : 'أولوية' }}
+                                            <button onclick="serveQueue({{ $queue->id }})" class="text-green-600 hover:text-green-900">خدمة</button>
+                                            <button onclick="setPriority({{ $queue->id }}, {{ $queue->is_vip ? 0 : 1 }})" class="text-yellow-600 hover:text-yellow-900">
+                                                {{ $queue->is_vip ? 'عادي' : 'VIP' }}
                                             </button>
                                         @endif
                                         @if($queue->status === 'serving')
-                                            <button onclick="completeQueue({{ $queue->id }})" class="text-blue-600 hover:text-blue-900 ml-3">إنهاء</button>
+                                            <button onclick="completeQueue({{ $queue->id }})" class="text-blue-600 hover:text-blue-900">إنهاء</button>
                                         @endif
                                         <button onclick="removeQueue({{ $queue->id }})" class="text-red-600 hover:text-red-900">حذف</button>
                                     </td>
@@ -144,14 +158,17 @@
             <form id="addQueueForm" class="space-y-4">
                 @csrf
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">اسم العميل</label>
-                    <input type="text" name="customer_name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
+                <!-- بيانات العميل -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">اسم العميل <span class="text-red-500">*</span></label>
+                        <input type="text" name="customer_name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">رقم الهاتف</label>
-                    <input type="tel" name="customer_phone" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">رقم الهاتف <span class="text-red-500">*</span></label>
+                        <input type="tel" name="customer_phone" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
 
                 <div>
@@ -159,15 +176,63 @@
                     <input type="email" name="customer_email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">نوع الخدمة</label>
-                    <input type="text" name="service_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <!-- اختيار التخصص والموظف والخدمة -->
+                <div class="border-t pt-4 mt-4">
+                    <h4 class="text-sm font-semibold text-gray-800 mb-3">اختيار الموظف والخدمة</h4>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- التخصص -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">التخصص <span class="text-red-500">*</span></label>
+                            <select name="specialization" id="specializationSelect" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">اختر التخصص</option>
+                                @php
+                                    $specializations = \App\Models\User::whereHas('role', fn($q) => $q->where('name', 'Staff'))
+                                        ->whereNotNull('specialization')
+                                        ->where('specialization', '!=', '')
+                                        ->select('specialization', 'specialization_ar')
+                                        ->distinct()
+                                        ->get();
+                                @endphp
+                                @foreach($specializations as $spec)
+                                    <option value="{{ $spec->specialization }}">{{ $spec->specialization_ar ?: $spec->specialization }}</option>
+                                @endforeach
+                            </select>
+                            @if($specializations->isEmpty())
+                                <p class="text-xs text-orange-600 mt-1">⚠️ لا توجد تخصصات - يرجى إضافة تخصصات للموظفين من <a href="{{ route('admin.staff') }}" class="underline">صفحة الموظفين</a></p>
+                            @endif
+                        </div>
+
+                        <!-- الموظف -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">الموظف <span class="text-red-500">*</span></label>
+                            <select name="staff_id" id="staffSelect" required disabled class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+                                <option value="">اختر التخصص أولاً</option>
+                            </select>
+                        </div>
+
+                        <!-- الخدمة -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">الخدمة <span class="text-red-500">*</span></label>
+                            <select name="service_id" id="serviceSelect" required disabled class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+                                <option value="">اختر الموظف أولاً</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- معلومات الخدمة المختارة -->
+                    <div id="serviceInfo" class="hidden mt-3 p-3 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-blue-800">
+                            <span class="font-medium">مدة الخدمة:</span>
+                            <span id="serviceDuration">-</span> دقيقة
+                        </p>
+                    </div>
                 </div>
 
                 <div>
                     <label class="flex items-center">
                         <input type="checkbox" name="is_priority" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        <span class="mr-2 text-sm font-medium text-gray-700">عميل له أولوية (VIP)</span>
+                        <span class="mr-2 text-sm font-medium text-gray-700">⭐ عميل له أولوية (VIP)</span>
                     </label>
                 </div>
 
@@ -189,6 +254,7 @@
     <script>
         function openAddModal() {
             document.getElementById('addQueueModal').classList.remove('hidden');
+            resetForm();
         }
 
         function closeAddModal() {
@@ -196,7 +262,117 @@
             document.getElementById('addQueueForm').reset();
             document.getElementById('addErrorMessage').classList.add('hidden');
             document.getElementById('addSuccessMessage').classList.add('hidden');
+            resetForm();
         }
+
+        function resetForm() {
+            const staffSelect = document.getElementById('staffSelect');
+            const serviceSelect = document.getElementById('serviceSelect');
+            const serviceInfo = document.getElementById('serviceInfo');
+
+            document.getElementById('specializationSelect').value = '';
+            staffSelect.innerHTML = '<option value="">اختر التخصص أولاً</option>';
+            staffSelect.disabled = true;
+            serviceSelect.innerHTML = '<option value="">اختر الموظف أولاً</option>';
+            serviceSelect.disabled = true;
+            serviceInfo.classList.add('hidden');
+        }
+
+        // When specialization changes → Load staff from API
+        document.getElementById('specializationSelect').addEventListener('change', async function() {
+            const specialization = this.value;
+            const staffSelect = document.getElementById('staffSelect');
+            const serviceSelect = document.getElementById('serviceSelect');
+            const serviceInfo = document.getElementById('serviceInfo');
+
+            // Reset dependent fields
+            serviceSelect.innerHTML = '<option value="">اختر الموظف أولاً</option>';
+            serviceSelect.disabled = true;
+            serviceInfo.classList.add('hidden');
+
+            if (!specialization) {
+                staffSelect.innerHTML = '<option value="">اختر التخصص أولاً</option>';
+                staffSelect.disabled = true;
+                return;
+            }
+
+            staffSelect.innerHTML = '<option value="">جاري التحميل...</option>';
+            staffSelect.disabled = true;
+
+            try {
+                const response = await fetch(`/admin/api/staff/by-specialization/${encodeURIComponent(specialization)}`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    staffSelect.innerHTML = '<option value="">اختر الموظف</option>';
+                    result.data.forEach(staff => {
+                        const option = document.createElement('option');
+                        option.value = staff.id;
+                        option.textContent = staff.name;
+                        staffSelect.appendChild(option);
+                    });
+                    staffSelect.disabled = false;
+                } else {
+                    staffSelect.innerHTML = '<option value="">لا يوجد موظفين في هذا التخصص</option>';
+                    staffSelect.disabled = true;
+                }
+            } catch (error) {
+                console.error('Error loading staff:', error);
+                staffSelect.innerHTML = '<option value="">خطأ في التحميل</option>';
+                staffSelect.disabled = true;
+            }
+        });
+
+        // When staff changes → Load their services from API
+        document.getElementById('staffSelect').addEventListener('change', async function() {
+            const staffId = this.value;
+            const serviceSelect = document.getElementById('serviceSelect');
+            const serviceInfo = document.getElementById('serviceInfo');
+
+            if (!staffId) {
+                serviceSelect.innerHTML = '<option value="">اختر الموظف أولاً</option>';
+                serviceSelect.disabled = true;
+                serviceInfo.classList.add('hidden');
+                return;
+            }
+
+            serviceSelect.innerHTML = '<option value="">جاري التحميل...</option>';
+            serviceSelect.disabled = true;
+
+            try {
+                const response = await fetch(`/admin/api/staff/${staffId}/services`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    serviceSelect.innerHTML = '<option value="">اختر الخدمة</option>';
+                    result.data.forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service.id;
+                        option.textContent = `${service.name_ar || service.name} (${service.duration} دقيقة)`;
+                        option.dataset.duration = service.duration;
+                        serviceSelect.appendChild(option);
+                    });
+                    serviceSelect.disabled = false;
+                } else {
+                    serviceSelect.innerHTML = '<option value="">لا توجد خدمات لهذا الموظف</option>';
+                }
+            } catch (error) {
+                serviceSelect.innerHTML = '<option value="">خطأ في التحميل</option>';
+            }
+        });
+
+        // When service changes, show duration
+        document.getElementById('serviceSelect').addEventListener('change', function() {
+            const serviceInfo = document.getElementById('serviceInfo');
+            const selectedOption = this.options[this.selectedIndex];
+
+            if (this.value && selectedOption.dataset.duration) {
+                document.getElementById('serviceDuration').textContent = selectedOption.dataset.duration;
+                serviceInfo.classList.remove('hidden');
+            } else {
+                serviceInfo.classList.add('hidden');
+            }
+        });
 
         // Add to queue
         document.getElementById('addQueueForm').addEventListener('submit', async (e) => {

@@ -143,10 +143,10 @@ class AdminController extends Controller
      */
     public function queue()
     {
-        $queues = \App\Models\Queue::with(['appointment.customer', 'appointment.staff'])
+        $queues = \App\Models\Queue::with(['appointment.customer', 'appointment.staff', 'appointment.service'])
             ->whereIn('status', ['waiting', 'serving'])
             ->orderBy('is_vip', 'desc')
-            ->orderBy('queue_number', 'asc')
+            ->orderBy('id', 'asc')
             ->get();
 
         return view('admin.queue', compact('queues'));
@@ -451,7 +451,8 @@ class AdminController extends Controller
                 'customer_name' => 'required|string|max:255',
                 'customer_phone' => 'required|string|max:20',
                 'customer_email' => 'nullable|email',
-                'service_type' => 'nullable|string|max:255',
+                'staff_id' => 'required|exists:users,id',
+                'service_id' => 'required|exists:services,id',
                 'is_priority' => 'nullable|boolean',
             ]);
 
@@ -468,40 +469,38 @@ class AdminController extends Controller
                 ]
             );
 
-            // Update phone if customer exists
-            if (!$customer->phone || $customer->phone !== $validated['customer_phone']) {
-                $customer->update(['phone' => $validated['customer_phone']]);
-            }
+            // Update name and phone if customer exists
+            $customer->update([
+                'name' => $validated['customer_name'],
+                'phone' => $validated['customer_phone'],
+            ]);
+
+            // Get service info
+            $service = Service::find($validated['service_id']);
 
             // Create appointment for today
             $appointment = Appointment::create([
                 'customer_id' => $customer->id,
-                'staff_id' => auth()->id(),
+                'staff_id' => $validated['staff_id'],
+                'service_id' => $validated['service_id'],
                 'date' => now()->toDateString(),
                 'time_slot' => now()->format('H:i'),
                 'status' => 'pending',
-                'service_type' => $validated['service_type'],
+                'service_type' => $service?->name,
             ]);
 
-            // Get next queue number
-            $lastQueue = \App\Models\Queue::whereDate('created_at', now()->toDateString())
-                ->orderBy('queue_number', 'desc')
-                ->first();
-
-            $queueNumber = $lastQueue ? $lastQueue->queue_number + 1 : 1;
-
-            // Add to queue
+            // Add to queue with formatted queue number
             $queue = \App\Models\Queue::create([
                 'appointment_id' => $appointment->id,
-                'queue_number' => $queueNumber,
+                'queue_number' => \App\Models\Queue::generateQueueNumber(),
                 'status' => 'waiting',
                 'is_vip' => $validated['is_priority'] ?? false,
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إضافة العميل إلى قائمة الانتظار - رقم الدور: ' . $queueNumber,
-                'data' => $queue->load(['appointment.customer'])
+                'message' => 'تم إضافة العميل إلى قائمة الانتظار - رقم الدور: #' . $queue->queue_number,
+                'data' => $queue->load(['appointment.customer', 'appointment.staff'])
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -525,10 +524,10 @@ class AdminController extends Controller
     public function callNext(Request $request)
     {
         try {
-            // Get next waiting in queue (VIP first)
+            // Get next waiting in queue (VIP first, then by ID)
             $next = \App\Models\Queue::where('status', 'waiting')
                 ->orderBy('is_vip', 'desc')
-                ->orderBy('queue_number', 'asc')
+                ->orderBy('id', 'asc')
                 ->first();
 
             if (!$next) {
@@ -546,7 +545,7 @@ class AdminController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'الدور رقم ' . $next->queue_number . ' - ' . ($next->appointment?->customer?->name ?? 'غير محدد'),
+                'message' => 'الدور رقم #' . $next->queue_number . ' - ' . ($next->appointment?->customer?->name ?? 'غير محدد'),
                 'data' => $next->load(['appointment.customer'])
             ]);
 
@@ -738,6 +737,7 @@ class AdminController extends Controller
                 'name' => 'required|string|max:255',
                 'name_ar' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
+                'duration' => 'required|integer|min:5|max:480',
                 'price' => 'nullable|numeric|min:0',
                 'is_active' => 'boolean',
             ]);
@@ -776,6 +776,7 @@ class AdminController extends Controller
                 'name' => 'required|string|max:255',
                 'name_ar' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
+                'duration' => 'required|integer|min:5|max:480',
                 'price' => 'nullable|numeric|min:0',
                 'is_active' => 'boolean',
             ]);
@@ -974,6 +975,8 @@ class AdminController extends Controller
                 'email' => 'required|email|unique:users,email',
                 'phone' => 'nullable|string|max:20',
                 'password' => 'required|string|min:6',
+                'specialization' => 'required|string|max:255',
+                'specialization_ar' => 'nullable|string|max:255',
                 'services' => 'array',
                 'schedule' => 'array',
             ]);
@@ -992,6 +995,8 @@ class AdminController extends Controller
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
                 'password' => Hash::make($validated['password']),
+                'specialization' => $validated['specialization'],
+                'specialization_ar' => $validated['specialization_ar'] ?? null,
             ]);
 
             // Attach services
@@ -1043,6 +1048,8 @@ class AdminController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $id,
                 'phone' => 'nullable|string|max:20',
+                'specialization' => 'nullable|string|max:255',
+                'specialization_ar' => 'nullable|string|max:255',
                 'services' => 'array',
                 'schedule' => 'array',
             ]);
@@ -1054,6 +1061,8 @@ class AdminController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
+                'specialization' => $validated['specialization'] ?? $staff->specialization,
+                'specialization_ar' => $validated['specialization_ar'] ?? $staff->specialization_ar,
             ]);
 
             // Sync services
@@ -1109,6 +1118,41 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error deleting staff: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'حدث خطأ'], 500);
+        }
+    }
+
+    /**
+     * Get staff by specialization (API for queue form)
+     */
+    public function getStaffBySpecialization($specialization)
+    {
+        try {
+            $staff = User::where('specialization', $specialization)
+                ->whereHas('role', function($q) {
+                    $q->where('name', 'Staff');
+                })
+                ->get(['id', 'name', 'specialization', 'specialization_ar']);
+
+            return response()->json(['success' => true, 'data' => $staff]);
+        } catch (\Exception $e) {
+            \Log::error('Error getting staff by specialization: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error'], 500);
+        }
+    }
+
+    /**
+     * Get staff services as JSON (API for queue form)
+     */
+    public function getStaffServicesJson($id)
+    {
+        try {
+            $staff = User::findOrFail($id);
+            $services = $staff->services()->get(['services.id', 'name', 'name_ar', 'duration', 'price']);
+
+            return response()->json(['success' => true, 'data' => $services]);
+        } catch (\Exception $e) {
+            \Log::error('Error getting staff services: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error'], 500);
         }
     }
 

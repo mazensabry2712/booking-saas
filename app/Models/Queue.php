@@ -19,6 +19,22 @@ class Queue extends Model
         'is_vip' => 'boolean',
     ];
 
+    /**
+     * Generate next queue number for today
+     * Format: Simple sequential number (1, 2, 3...)
+     */
+    public static function generateQueueNumber(): string
+    {
+        // Get the last queue number for today
+        $lastQueue = self::whereDate('created_at', now()->toDateString())
+            ->orderByRaw('CAST(queue_number AS UNSIGNED) DESC')
+            ->first();
+
+        $nextNumber = $lastQueue ? ((int) $lastQueue->queue_number + 1) : 1;
+
+        return (string) $nextNumber;
+    }
+
     // Relationships
     public function appointment()
     {

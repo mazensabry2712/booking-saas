@@ -67,20 +67,14 @@ class QueueController extends Controller
             ], 400);
         }
 
-        // Get the last queue number for today
-        $lastQueueNumber = Queue::whereDate('created_at', now()->toDateString())
-            ->max('queue_number') ?? 0;
-
-        $queueNumber = $lastQueueNumber + 1;
-
         // Check if customer is VIP
         $customer = User::find($appointment->customer_id);
         $isVip = $customer->is_vip ?? false;
 
-        // Create queue entry
+        // Create queue entry with formatted queue number
         $queue = Queue::create([
             'appointment_id' => $appointment->id,
-            'queue_number' => $queueNumber,
+            'queue_number' => Queue::generateQueueNumber(),
             'status' => 'waiting',
             'is_vip' => $isVip,
         ]);

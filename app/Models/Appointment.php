@@ -10,6 +10,7 @@ class Appointment extends Model
     protected $fillable = [
         'customer_id',
         'staff_id',
+        'service_id',
         'date',
         'time_slot',
         'status',
@@ -37,8 +38,26 @@ class Appointment extends Model
         return $this->belongsTo(User::class, 'staff_id');
     }
 
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
+    }
+
     public function queue()
     {
         return $this->hasOne(Queue::class);
+    }
+
+    /**
+     * Get service name (from service relation or service_type field)
+     */
+    public function getServiceNameAttribute()
+    {
+        if ($this->service) {
+            return app()->getLocale() === 'ar' && $this->service->name_ar
+                ? $this->service->name_ar
+                : $this->service->name;
+        }
+        return $this->service_type;
     }
 }

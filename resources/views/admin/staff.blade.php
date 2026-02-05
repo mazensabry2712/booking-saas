@@ -48,6 +48,9 @@
                                         </div>
                                         <div>
                                             <h4 class="font-semibold text-gray-900">{{ $staff->name }}</h4>
+                                            @if($staff->specialization || $staff->specialization_ar)
+                                                <p class="text-sm text-blue-600 font-medium">{{ app()->getLocale() === 'ar' && $staff->specialization_ar ? $staff->specialization_ar : $staff->specialization }}</p>
+                                            @endif
                                             <p class="text-sm text-gray-500">{{ $staff->email }}</p>
                                         </div>
                                     </div>
@@ -124,11 +127,24 @@
                         @foreach($services as $service)
                             <div class="border rounded-lg p-4 {{ $service->is_active ? 'bg-white' : 'bg-gray-100' }}">
                                 <div class="flex justify-between items-start">
-                                    <div>
+                                    <div class="flex-1">
                                         <h4 class="font-medium text-gray-900">{{ $service->name }}</h4>
                                         @if($service->name_ar)
                                             <p class="text-sm text-gray-500">{{ $service->name_ar }}</p>
                                         @endif
+                                        <div class="flex items-center gap-3 mt-2">
+                                            <span class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                {{ $service->duration }} {{ __('min') }}
+                                            </span>
+                                            @if($service->price)
+                                                <span class="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                                    {{ number_format($service->price, 2) }} ج.م
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
                                     <div class="flex gap-1">
                                         <button onclick="editService({{ $service->id }})" class="p-1 text-blue-600 hover:bg-blue-50 rounded">
@@ -186,6 +202,18 @@
                     <div id="passwordField">
                         <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Password') }} <span class="text-red-500">*</span></label>
                         <input type="password" id="staff_password" name="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <!-- Specialization -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Specialization') }} (English) <span class="text-red-500">*</span></label>
+                        <input type="text" id="staff_specialization" name="specialization" required placeholder="e.g. Dentist, Ophthalmologist" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Specialization') }} (Arabic)</label>
+                        <input type="text" id="staff_specialization_ar" name="specialization_ar" placeholder="مثال: طبيب أسنان، طبيب عيون" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
 
@@ -281,14 +309,40 @@
                 @csrf
                 <input type="hidden" id="service_id" name="service_id">
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Service Name (English)') }} <span class="text-red-500">*</span></label>
-                    <input type="text" id="service_name" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Service Name (English)') }} <span class="text-red-500">*</span></label>
+                        <input type="text" id="service_name" name="name" required placeholder="e.g. Consultation, Examination" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Service Name (Arabic)') }}</label>
+                        <input type="text" id="service_name_ar" name="name_ar" placeholder="مثال: استشارة، كشف" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" dir="rtl">
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Service Name (Arabic)') }}</label>
-                    <input type="text" id="service_name_ar" name="name_ar" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" dir="rtl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Duration (minutes)') }} <span class="text-red-500">*</span></label>
+                        <input type="number" id="service_duration" name="duration" required min="5" max="480" value="30" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p class="text-xs text-gray-500 mt-1">كام دقيقة الخدمة بتاخد؟</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Price') }}</label>
+                        <input type="number" id="service_price" name="price" min="0" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p class="text-xs text-gray-500 mt-1">السعر (اختياري)</p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-blue-50 rounded-lg">
+                    <p class="text-sm text-blue-800">
+                        <strong>💡 أمثلة للخدمات:</strong><br>
+                        • استشارة (Consultation) - 15 دقيقة<br>
+                        • كشف (Examination) - 30 دقيقة<br>
+                        • متابعة (Follow-up) - 10 دقائق<br>
+                        • عملية (Surgery) - 60 دقيقة
+                    </p>
                 </div>
 
                 <div id="serviceErrorMessage" class="hidden bg-red-50 border border-red-200 text-red-800 rounded-lg p-3"></div>
@@ -350,6 +404,10 @@
             document.getElementById('staffForm').reset();
             document.getElementById('staffErrorMessage').classList.add('hidden');
             document.getElementById('staffSuccessMessage').classList.add('hidden');
+            document.getElementById('passwordField').style.display = 'block';
+            document.getElementById('staff_password').required = true;
+            document.getElementById('staff_specialization').required = true;
+            document.getElementById('staff_id').value = '';
         }
 
         async function editStaff(id) {
@@ -365,8 +423,11 @@
                     document.getElementById('staff_name').value = staff.name;
                     document.getElementById('staff_email').value = staff.email;
                     document.getElementById('staff_phone').value = staff.phone || '';
+                    document.getElementById('staff_specialization').value = staff.specialization || '';
+                    document.getElementById('staff_specialization_ar').value = staff.specialization_ar || '';
                     document.getElementById('passwordField').style.display = 'none';
                     document.getElementById('staff_password').required = false;
+                    document.getElementById('staff_specialization').required = false;
 
                     // Set services
                     document.querySelectorAll('.service-checkbox').forEach(cb => {
@@ -419,6 +480,8 @@
                 name: document.getElementById('staff_name').value,
                 email: document.getElementById('staff_email').value,
                 phone: document.getElementById('staff_phone').value,
+                specialization: document.getElementById('staff_specialization').value,
+                specialization_ar: document.getElementById('staff_specialization_ar').value,
                 services: [],
                 schedule: []
             };
@@ -509,6 +572,7 @@
         function closeServiceModal() {
             document.getElementById('serviceModal').classList.add('hidden');
             document.getElementById('serviceForm').reset();
+            document.getElementById('service_duration').value = 30;
             document.getElementById('serviceErrorMessage').classList.add('hidden');
         }
 
@@ -522,6 +586,8 @@
                     document.getElementById('service_id').value = result.data.id;
                     document.getElementById('service_name').value = result.data.name;
                     document.getElementById('service_name_ar').value = result.data.name_ar || '';
+                    document.getElementById('service_duration').value = result.data.duration || 30;
+                    document.getElementById('service_price').value = result.data.price || '';
                     document.getElementById('serviceModal').classList.remove('hidden');
                 }
             } catch (error) {
@@ -541,6 +607,8 @@
             const formData = {
                 name: document.getElementById('service_name').value,
                 name_ar: document.getElementById('service_name_ar').value,
+                duration: parseInt(document.getElementById('service_duration').value) || 30,
+                price: parseFloat(document.getElementById('service_price').value) || null,
                 is_active: true
             };
 

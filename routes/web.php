@@ -114,6 +114,8 @@ Route::middleware(['tenant', 'tenant.locale', 'auth', 'role:Admin Tenant|Staff|A
         Route::post('/staff', [AdminController::class, 'storeStaff'])->name('api.staff.store');
         Route::put('/staff/{id}', [AdminController::class, 'updateStaff'])->name('api.staff.update');
         Route::delete('/staff/{id}', [AdminController::class, 'destroyStaff'])->name('api.staff.destroy');
+        Route::get('/staff/by-specialization/{specialization}', [AdminController::class, 'getStaffBySpecialization'])->name('api.staff.bySpecialization');
+        Route::get('/staff/{id}/services', [AdminController::class, 'getStaffServicesJson'])->name('api.staff.services');
 
         // Queue Management
         Route::post('/queue/add', [AdminController::class, 'addToQueue'])->name('api.queue.add');

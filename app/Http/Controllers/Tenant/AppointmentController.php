@@ -72,13 +72,10 @@ class AppointmentController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            // Add to queue - generate sequential queue number for today
-            $lastQueueNumber = Queue::whereDate('created_at', today())->max('queue_number') ?? 0;
-            $queueNumber = $lastQueueNumber + 1;
-
+            // Add to queue with formatted queue number
             $queue = Queue::create([
                 'appointment_id' => $appointment->id,
-                'queue_number' => $queueNumber,
+                'queue_number' => Queue::generateQueueNumber(),
                 'status' => 'waiting',
                 'is_vip' => $customer->is_vip ?? false,
             ]);
