@@ -22,10 +22,8 @@ class QueueController extends Controller
      */
     public function publicQueue()
     {
-        $date = now()->toDateString();
-
-        // Get all queues for today (tenant is automatically scoped via database)
-        $queues = Queue::whereDate('created_at', $date)
+        // Get all active queues (waiting or serving) - same as admin view
+        $queues = Queue::whereIn('status', ['waiting', 'serving'])
             ->orderBy('is_vip', 'desc')
             ->orderBy('queue_number', 'asc')
             ->get();
