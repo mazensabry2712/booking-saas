@@ -638,12 +638,6 @@ class AdminController extends Controller
             ], 500);
         }
     }
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ'
-            ], 500);
-        }
-    }
 
     /**
      * Set queue priority (AJAX)
